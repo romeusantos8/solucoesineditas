@@ -1,0 +1,35 @@
+# ----------------------------------------------------------------------------
+# Segredos — NUNCA versionar. O .env tem passwords e a SECRET_KEY.
+# (O .env.example, esse sim, é versionado: serve de modelo sem segredos reais.)
+# ----------------------------------------------------------------------------
+.env
+
+# Ambiente virtual de Python
+venv/
+.venv/
+env/
+
+# Cache e bytecode do Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Base de dados local SQLite (caso alguma vez apareça; nós usamos Postgres)
+*.sqlite3
+db.sqlite3
+
+# Ficheiros estáticos recolhidos para produção
+/staticfiles/
+/static/
+
+# Logs
+*.log
+
+# IDEs / editores
+.vscode/
+.idea/
+*.swp
+
+# Sistema operativo
+.DS_Store
+Thumbs.db

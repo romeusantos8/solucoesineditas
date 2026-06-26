@@ -1,0 +1,16 @@
+# Dependências do backend (MVP — Gestão de Viaturas e Equipamentos)
+#
+# Fixamos as versões "major" para o projeto ser reproduzível. Quando quiseres
+# atualizar, fá-lo de propósito e testa, em vez de apanhar surpresas.
+
+Django==5.1.*                 # Framework web. 5.1 é compatível com Python 3.14.
+djangorestframework==3.15.*   # DRF: transforma o Django numa API REST.
+
+# Driver de PostgreSQL. Usamos o psycopg 3 (não o antigo psycopg2) porque traz
+# binários pré-compilados ("wheels"), o que evita precisares de um compilador C
+# — importante com Python 3.14, que é muito recente.
+psycopg[binary]==3.2.*
+
+# Lê configurações/segredos a partir do ficheiro .env (ou de variáveis de
+# ambiente em produção). Mantém segredos FORA do código — boa prática e RGPD.
+python-decouple==3.8
