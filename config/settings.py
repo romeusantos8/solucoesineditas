@@ -30,6 +30,14 @@ DEBUG = config("DEBUG", default=False, cast=bool)
 # Csv() transforma "127.0.0.1,localhost" numa lista ['127.0.0.1', 'localhost'].
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="", cast=Csv())
 
+# Origens (frontend) autorizadas a chamar a API. O React em dev corre no Vite
+# (http://localhost:5173). Em produção, acrescenta aqui o domínio do site.
+CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    default="http://localhost:5173,http://127.0.0.1:5173",
+    cast=Csv(),
+)
+
 
 # ---------------------------------------------------------------------------
 # Aplicações instaladas
@@ -47,6 +55,8 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     "rest_framework",               # Django REST Framework
     "rest_framework.authtoken",     # autenticação por Token (a que escolhemos)
+    "django_filters",               # filtros de querystring (ex.: ?viatura=ID)
+    "corsheaders",                  # permite o frontend React (outro porto) chamar a API
 ]
 
 # As nossas apps de domínio. Cada uma tem uma responsabilidade clara:
@@ -66,6 +76,9 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # CORS tem de vir o mais cedo possível, antes do CommonMiddleware, para
+    # conseguir adicionar os cabeçalhos certos às respostas.
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -158,6 +171,14 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    # Filtros de querystring por defeito (django-filter). Cada ViewSet declara
+    # depois que campos aceita filtrar via `filterset_fields`.
+    "DEFAULT_FILTER_BACKENDS": [
+        "django_filters.rest_framework.DjangoFilterBackend",
+    ],
+    # Paginação: listas vêm em páginas de 50 para não devolver tudo de uma vez.
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 50,
     # ----------------------------------------------------------------------
     # GANCHO PARA O FUTURO (roles/permissões) — NÃO ativar agora.
     # Quando quiseres permissões por papel, o caminho típico é:

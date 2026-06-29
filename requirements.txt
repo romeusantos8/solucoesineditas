@@ -3,8 +3,10 @@
 # Fixamos as versões "major" para o projeto ser reproduzível. Quando quiseres
 # atualizar, fá-lo de propósito e testa, em vez de apanhar surpresas.
 
-Django==5.1.*                 # Framework web. 5.1 é compatível com Python 3.14.
-djangorestframework==3.15.*   # DRF: transforma o Django numa API REST.
+Django==6.0.*                 # Framework web. 6.0 suporta oficialmente Python 3.14.
+djangorestframework==3.17.*   # DRF: transforma o Django numa API REST (3.17+ suporta Django 6.0).
+django-filter==25.1           # Filtros de querystring para a API (ex.: ?viatura=ID).
+django-cors-headers==4.7.0    # Deixa o frontend React (outro porto) chamar a API.
 
 # Driver de PostgreSQL. Usamos o psycopg 3 (não o antigo psycopg2) porque traz
 # binários pré-compilados ("wheels"), o que evita precisares de um compilador C

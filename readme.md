@@ -51,8 +51,8 @@ médicas) alimentam o dashboard de alertas.
 
 ## Como correr localmente
 
-> Estado: **Passo 1 (Setup)** concluído. A API e o endpoint de alertas chegam nos
-> passos seguintes. As instruções abaixo são para **Windows / PowerShell**.
+> Estado: **MVP concluído** — models, API REST CRUD e endpoint de alertas a funcionar.
+> As instruções abaixo são para **Windows / PowerShell**.
 
 ### Estrutura do projeto
 ```
