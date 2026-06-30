@@ -126,6 +126,19 @@ class AlocacaoBase(RegistoComAuditoria):
             raise ValidationError(
                 {"data_fim": "Não pode ser anterior à data de início."}
             )
+        # O fim da alocação não pode ultrapassar o fim previsto da obra (quando a
+        # obra tem um fim previsto; se não tiver, não há limite superior).
+        if self.data_fim and self.obra_id:
+            fim_obra = self.obra.data_fim_prevista
+            if fim_obra and self.data_fim > fim_obra:
+                raise ValidationError(
+                    {
+                        "data_fim": (
+                            "Não pode ser depois do fim previsto da obra "
+                            f"({fim_obra})."
+                        )
+                    }
+                )
 
 
 class AlocacaoFuncionario(AlocacaoBase):

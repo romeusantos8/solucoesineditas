@@ -32,6 +32,31 @@ class ClienteObraApiTests(APITestCase):
         self.assertEqual(resp.status_code, 201)
         self.assertEqual(resp.json()["criado_por"], self.user.id)
 
+    def test_criar_cliente_so_com_nome_campos_texto_vazios(self):
+        # Reproduz o que o frontend envia (JSON): campos de texto opcionais como
+        # "" (não null) e o NIF (unique+nullable) como null.
+        resp = self.client.post(
+            "/api/clientes/",
+            {"nome": "MotaEngil", "email": "", "telefone": "", "nif": None},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 201)
+
+    def test_dois_clientes_sem_nif_nao_colidem(self):
+        # NIF vazio tem de ir como null: dois nulos não violam o unique.
+        self.assertEqual(
+            self.client.post(
+                "/api/clientes/", {"nome": "A", "nif": None}, format="json"
+            ).status_code,
+            201,
+        )
+        self.assertEqual(
+            self.client.post(
+                "/api/clientes/", {"nome": "B", "nif": None}, format="json"
+            ).status_code,
+            201,
+        )
+
     def test_cliente_nif_invalido_rejeitado(self):
         resp = self.client.post("/api/clientes/", {"nome": "X", "nif": "111111111"})
         self.assertEqual(resp.status_code, 400)
@@ -122,6 +147,32 @@ class AlocacaoTests(APITestCase):
         })
         self.assertEqual(resp.status_code, 400)
         self.assertIn("data_fim", resp.json())
+
+    def test_fim_alocacao_nao_ultrapassa_fim_da_obra(self):
+        obra_com_fim = Obra.objects.create(
+            cliente=self.cliente, nome="Com fim", data_inicio=date.today(),
+            data_fim_prevista=date.today() + timedelta(days=10),
+        )
+        # data_fim depois do fim previsto da obra → erro
+        resp = self.client.post("/api/alocacoes-funcionarios/", {
+            "obra": obra_com_fim.id, "funcionario": self.func.id,
+            "data_inicio": date.today().isoformat(),
+            "data_fim": (date.today() + timedelta(days=20)).isoformat(),
+        })
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("data_fim", resp.json())
+
+    def test_fim_alocacao_dentro_do_fim_da_obra_ok(self):
+        obra_com_fim = Obra.objects.create(
+            cliente=self.cliente, nome="Com fim", data_inicio=date.today(),
+            data_fim_prevista=date.today() + timedelta(days=10),
+        )
+        resp = self.client.post("/api/alocacoes-funcionarios/", {
+            "obra": obra_com_fim.id, "funcionario": self.func.id,
+            "data_inicio": date.today().isoformat(),
+            "data_fim": (date.today() + timedelta(days=5)).isoformat(),
+        })
+        self.assertEqual(resp.status_code, 201)
 
     def test_filtra_alocacoes_por_obra(self):
         self.client.post("/api/alocacoes-funcionarios/", {

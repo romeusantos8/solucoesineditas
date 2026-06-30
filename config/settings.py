@@ -71,6 +71,7 @@ LOCAL_APPS = [
     "equipment",
     "employees",
     "projects",
+    "health_records",
     "alerts",
 ]
 

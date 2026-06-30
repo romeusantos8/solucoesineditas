@@ -17,9 +17,12 @@ export default function Layout() {
       <header className="navbar">
         <span className="navbar-brand">Gestão de Recursos</span>
         <nav className="navbar-links">
-          <NavLink to="/">Alertas</NavLink>
+          <NavLink to="/" end>Alertas</NavLink>
           <NavLink to="/viaturas">Viaturas</NavLink>
           <NavLink to="/equipamentos">Equipamentos</NavLink>
+          <NavLink to="/funcionarios">Funcionários</NavLink>
+          <NavLink to="/clientes">Clientes</NavLink>
+          <NavLink to="/obras">Obras</NavLink>
         </nav>
         <button className="btn-link" onClick={handleLogout}>
           Terminar sessão

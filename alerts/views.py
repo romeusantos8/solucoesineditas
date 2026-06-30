@@ -26,6 +26,7 @@ from rest_framework.views import APIView
 
 from equipment.models import Certificado
 from fleet.models import Inspecao, SeguroViatura
+from health_records.models import FichaMedica
 
 from .serializers import AlertaSerializer
 
@@ -111,6 +112,14 @@ class AlertasView(APIView):
         )
         for c in certificados:
             alertas.append(_alerta(c, "certificado", "equipamento", c.equipamento_id))
+
+        # Fichas médicas: a descrição (do __str__) só identifica o funcionário,
+        # não revela dados clínicos — adequado para um alerta de prazo aqui.
+        fichas = FichaMedica.objects.select_related("funcionario").filter(
+            data_validade__range=(piso, teto)
+        )
+        for f in fichas:
+            alertas.append(_alerta(f, "ficha_medica", "funcionario", f.funcionario_id))
 
         # Mais urgente primeiro: menos dias para expirar (negativos = já expirados
         # ficam no topo).

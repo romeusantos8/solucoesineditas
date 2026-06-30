@@ -187,6 +187,68 @@ label {
   border-bottom: none;
 }
 
+/* --- Modal (formulário sobre a página, fundo desfocado) --- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  z-index: 50;
+}
+.modal-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.modal-fechar {
+  font-size: 1.1rem;
+  color: var(--cinza-texto);
+}
+/* Botão que abre o modal, alinhado à direita do cabeçalho da página. */
+.acoes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+/* Formulário vertical dentro do modal. */
+.form-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.form-modal label {
+  gap: 0.3rem;
+}
+.form-modal button[type="submit"] {
+  margin-top: 0.3rem;
+}
+
+/* Botões de ação (Editar/Apagar) lado a lado na última coluna. */
+.celula-acoes {
+  display: flex;
+  gap: 0.75rem;
+  white-space: nowrap;
+}
+
 /* Navegação de páginas. */
 .paginacao {
   display: flex;

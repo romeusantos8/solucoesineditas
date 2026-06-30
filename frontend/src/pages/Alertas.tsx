@@ -8,6 +8,7 @@ const LABEL_TIPO: Record<Alerta["tipo"], string> = {
   seguro: "Seguro",
   inspecao: "Inspeção",
   certificado: "Certificado",
+  ficha_medica: "Ficha médica",
 };
 
 // Classe CSS conforme a urgência, para colorir cada linha.

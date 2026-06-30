@@ -44,6 +44,7 @@ urlpatterns = [
     path("api/", include("equipment.urls")),
     path("api/", include("employees.urls")),
     path("api/", include("projects.urls")),
+    path("api/", include("health_records.urls")),
 
     # Dashboard de alertas: prazos a expirar (GET /api/alerts/?dias=N).
     path("api/", include("alerts.urls")),
