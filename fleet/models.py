@@ -13,7 +13,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 
-from config.common import RegistoComValidade
+from config.common import RegistoComAuditoria, RegistoComValidade
 
 # A viatura mais antiga plausível e a margem para o futuro (modelos do ano
 # seguinte já à venda). Usado para validar o campo `ano`.
@@ -25,7 +25,7 @@ def _ano_maximo():
     return date.today().year + 1
 
 
-class Viatura(models.Model):
+class Viatura(RegistoComAuditoria):
     """Uma viatura da empresa, identificada pela matrícula."""
 
     matricula = models.CharField("Matrícula", max_length=20, unique=True)
@@ -64,7 +64,7 @@ class Viatura(models.Model):
             )
 
 
-class SeguroViatura(RegistoComValidade):
+class SeguroViatura(RegistoComValidade, RegistoComAuditoria):
     """Apólice de seguro de uma viatura. `data_validade` herdada da base."""
 
     viatura = models.ForeignKey(
@@ -97,7 +97,7 @@ class SeguroViatura(RegistoComValidade):
             )
 
 
-class Inspecao(RegistoComValidade):
+class Inspecao(RegistoComValidade, RegistoComAuditoria):
     """Inspeção periódica. `data_validade` = data da próxima inspeção."""
 
     class Resultado(models.TextChoices):
@@ -127,7 +127,7 @@ class Inspecao(RegistoComValidade):
         return f"Inspeção {self.viatura.matricula} — {self.data_inspecao}"
 
 
-class DespesaViatura(models.Model):
+class DespesaViatura(RegistoComAuditoria):
     """Despesa pontual de uma viatura. Não tem prazo, não gera alertas."""
 
     viatura = models.ForeignKey(

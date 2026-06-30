@@ -8,7 +8,7 @@ adicionar mais tarde vivem aqui (métodos validate_<campo> / validate).
 
 from rest_framework import serializers
 
-from config.common import ModelCleanSerializerMixin
+from config.common import AUDITORIA_FIELDS, ModelCleanSerializerMixin
 
 from .models import DespesaViatura, Inspecao, SeguroViatura, Viatura
 
@@ -25,9 +25,10 @@ class ViaturaSerializer(ModelCleanSerializerMixin, serializers.ModelSerializer):
             "ativa",
             "criado_em",
             "atualizado_em",
+            *AUDITORIA_FIELDS,
         ]
         # Datas de auditoria são preenchidas automaticamente; nunca via API.
-        read_only_fields = ["criado_em", "atualizado_em"]
+        read_only_fields = ["criado_em", "atualizado_em", *AUDITORIA_FIELDS]
 
 
 class SeguroViaturaSerializer(ModelCleanSerializerMixin, serializers.ModelSerializer):
@@ -44,10 +45,12 @@ class SeguroViaturaSerializer(ModelCleanSerializerMixin, serializers.ModelSerial
             "data_inicio",
             "data_validade",
             "dias_para_expirar",
+            *AUDITORIA_FIELDS,
         ]
+        read_only_fields = [*AUDITORIA_FIELDS]
 
 
-class InspecaoSerializer(serializers.ModelSerializer):
+class InspecaoSerializer(ModelCleanSerializerMixin, serializers.ModelSerializer):
     dias_para_expirar = serializers.IntegerField(read_only=True)
 
     class Meta:
@@ -59,10 +62,13 @@ class InspecaoSerializer(serializers.ModelSerializer):
             "data_validade",
             "resultado",
             "dias_para_expirar",
+            *AUDITORIA_FIELDS,
         ]
+        read_only_fields = [*AUDITORIA_FIELDS]
 
 
 class DespesaViaturaSerializer(serializers.ModelSerializer):
     class Meta:
         model = DespesaViatura
-        fields = ["id", "viatura", "descricao", "valor", "data"]
+        fields = ["id", "viatura", "descricao", "valor", "data", *AUDITORIA_FIELDS]
+        read_only_fields = [*AUDITORIA_FIELDS]

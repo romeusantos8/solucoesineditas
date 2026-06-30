@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
-import type { Alerta } from "../api/types";
+import type { Alerta, Paginated } from "../api/types";
 
 const LABEL_TIPO: Record<Alerta["tipo"], string> = {
   seguro: "Seguro",
@@ -28,15 +28,24 @@ export default function Alertas() {
   const [alertas, setAlertas] = useState<Alerta[]>([]);
   const [aCarregar, setACarregar] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [pagina, setPagina] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [temProxima, setTemProxima] = useState(false);
+
+  // Mudar a janela volta à primeira página (senão podíamos cair fora do range).
+  useEffect(() => setPagina(1), [dias]);
 
   useEffect(() => {
     let ativo = true;
     setACarregar(true);
     setErro(null);
     api
-      .get<Alerta[]>(`/alerts/?dias=${dias}`)
+      .get<Paginated<Alerta>>(`/alerts/?dias=${dias}&page=${pagina}`)
       .then((res) => {
-        if (ativo) setAlertas(res.data);
+        if (!ativo) return;
+        setAlertas(res.data.results);
+        setTotal(res.data.count);
+        setTemProxima(res.data.next !== null);
       })
       .catch(() => {
         if (ativo) setErro("Não foi possível carregar os alertas.");
@@ -47,7 +56,7 @@ export default function Alertas() {
     return () => {
       ativo = false;
     };
-  }, [dias]);
+  }, [dias, pagina]);
 
   return (
     <section>
@@ -94,6 +103,23 @@ export default function Alertas() {
             ))}
           </tbody>
         </table>
+      )}
+
+      {!aCarregar && total > 0 && (pagina > 1 || temProxima) && (
+        <div className="paginacao">
+          <button
+            onClick={() => setPagina((p) => p - 1)}
+            disabled={pagina <= 1}
+          >
+            Anterior
+          </button>
+          <span className="muted">
+            Página {pagina} — {total} no total
+          </span>
+          <button onClick={() => setPagina((p) => p + 1)} disabled={!temProxima}>
+            Seguinte
+          </button>
+        </div>
       )}
     </section>
   );

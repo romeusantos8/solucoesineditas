@@ -8,10 +8,29 @@ as subclasses herdarem campos e comportamento, evitando repetir código.
 
 from datetime import date
 
+from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError as DRFValidationError
+
+
+def validar_nif(nif: str) -> None:
+    """
+    Valida um NIF português: 9 dígitos e dígito de controlo (checksum) correto.
+    Levanta ValidationError se for inválido. O algoritmo é o oficial: soma
+    ponderada dos 8 primeiros dígitos, e o 9º confirma o resultado.
+
+    Partilhado por Funcionario e Cliente (ambos têm NIF).
+    """
+    if not nif.isdigit() or len(nif) != 9:
+        raise DjangoValidationError("O NIF tem de ter exatamente 9 dígitos.")
+
+    total = sum(int(nif[i]) * (9 - i) for i in range(8))
+    resto = total % 11
+    controlo = 0 if resto < 2 else 11 - resto
+    if controlo != int(nif[8]):
+        raise DjangoValidationError("NIF inválido (dígito de controlo não confere).")
 
 
 class RegistoComValidade(models.Model):
@@ -40,6 +59,77 @@ class RegistoComValidade(models.Model):
     @property
     def expirado(self):
         return self.dias_para_expirar < 0
+
+
+# Nomes dos campos de auditoria, para os serializers os incluírem em fields /
+# read_only_fields sem os repetirem à mão (e sem risco de divergirem do model).
+AUDITORIA_FIELDS = ("criado_por", "atualizado_por")
+
+
+class RegistoComAuditoria(models.Model):
+    """
+    Base que regista QUEM criou e alterou pela última vez um registo. Para uma
+    ferramenta de gestão empresarial (e RGPD), saber quem mexeu em quê é
+    requisito comum — e é barato agora, caro de acrescentar retroativamente.
+
+    Os campos são opcionais (null) porque registos criados fora de um pedido
+    autenticado (ex.: shell, migração de dados) não têm utilizador associado.
+    on_delete=SET_NULL: apagar um utilizador não apaga o histórico que ele criou.
+    """
+
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",  # não precisamos da relação inversa no User
+        verbose_name="Criado por",
+    )
+    atualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name="Atualizado por",
+    )
+
+    class Meta:
+        abstract = True
+
+
+class AuditoriaAdminMixin:
+    """
+    Para ModelAdmins de models com RegistoComAuditoria: preenche
+    criado_por/atualizado_por com o utilizador logado ao gravar pelo Admin, e
+    mostra-os só de leitura. Sem isto, a auditoria só seria preenchida pela API.
+    """
+
+    readonly_fields = ("criado_por", "atualizado_por")
+
+    def save_model(self, request, obj, form, change):
+        if not change:  # criação
+            obj.criado_por = request.user
+        obj.atualizado_por = request.user
+        super().save_model(request, obj, form, change)
+
+
+class AuditoriaViewSetMixin:
+    """
+    Para ViewSets cujos models herdam de RegistoComAuditoria: preenche
+    automaticamente criado_por (na criação) e atualizado_por (em cada gravação)
+    com o utilizador autenticado do pedido. A view é o único sítio que conhece
+    o request, por isso a atribuição vive aqui, não no serializer.
+    """
+
+    def perform_create(self, serializer):
+        serializer.save(
+            criado_por=self.request.user,
+            atualizado_por=self.request.user,
+        )
+
+    def perform_update(self, serializer):
+        serializer.save(atualizado_por=self.request.user)
 
 
 class ModelCleanSerializerMixin:

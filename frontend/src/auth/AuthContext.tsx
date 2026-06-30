@@ -1,14 +1,15 @@
 // Estado de autenticação partilhado por toda a app.
 //
-// Guardamos o token no localStorage para a sessão sobreviver a refreshes da
-// página. login() troca username+password pelo token (via /api/auth/token/);
-// logout() limpa-o.
+// Com JWT, o login devolve um par { access, refresh } que guardamos no
+// localStorage (ver auth/tokens.ts). A sessão considera-se ativa enquanto
+// houver um access guardado; a renovação automática vive no interceptor do
+// cliente axios (api/client.ts).
 
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import { api, TOKEN_KEY } from "../api/client";
+import { api } from "../api/client";
+import { clearTokens, getAccess, setTokens } from "./tokens";
 
 interface AuthState {
-  token: string | null;
   isAuthenticated: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
@@ -17,28 +18,29 @@ interface AuthState {
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(
-    () => localStorage.getItem(TOKEN_KEY),
+  // Estado booleano simples: há access guardado = sessão ativa.
+  const [autenticado, setAutenticado] = useState<boolean>(() =>
+    Boolean(getAccess()),
   );
 
   async function login(username: string, password: string) {
-    // O endpoint devolve { token: "..." } em caso de sucesso.
-    const { data } = await api.post<{ token: string }>("/auth/token/", {
-      username,
-      password,
-    });
-    localStorage.setItem(TOKEN_KEY, data.token);
-    setToken(data.token);
+    // O endpoint JWT devolve { access, refresh } em caso de sucesso.
+    const { data } = await api.post<{ access: string; refresh: string }>(
+      "/auth/token/",
+      { username, password },
+    );
+    setTokens(data.access, data.refresh);
+    setAutenticado(true);
   }
 
   function logout() {
-    localStorage.removeItem(TOKEN_KEY);
-    setToken(null);
+    clearTokens();
+    setAutenticado(false);
   }
 
   const value = useMemo<AuthState>(
-    () => ({ token, isAuthenticated: Boolean(token), login, logout }),
-    [token],
+    () => ({ isAuthenticated: autenticado, login, logout }),
+    [autenticado],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

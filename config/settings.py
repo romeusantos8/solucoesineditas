@@ -5,7 +5,7 @@ Lê valores sensíveis e específicos do ambiente a partir do .env (via python-d
 em vez de os ter escritos à mão aqui. Assim o mesmo código corre em local e em
 produção, e nunca commitamos segredos.
 
-Documentação: https://docs.djangoproject.com/en/5.1/ref/settings/
+Documentação: https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
@@ -54,9 +54,10 @@ DJANGO_APPS = [
 
 THIRD_PARTY_APPS = [
     "rest_framework",               # Django REST Framework
-    "rest_framework.authtoken",     # autenticação por Token (a que escolhemos)
+    "rest_framework_simplejwt",     # autenticação por JWT (access curto + refresh)
     "django_filters",               # filtros de querystring (ex.: ?viatura=ID)
     "corsheaders",                  # permite o frontend React (outro porto) chamar a API
+    "drf_spectacular",              # gera o esquema OpenAPI / Swagger UI da API
 ]
 
 # As nossas apps de domínio. Cada uma tem uma responsabilidade clara:
@@ -68,6 +69,8 @@ LOCAL_APPS = [
     "accounts",
     "fleet",
     "equipment",
+    "employees",
+    "projects",
     "alerts",
 ]
 
@@ -76,6 +79,9 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # WhiteNoise serve os ficheiros estáticos (CSS/JS do Admin) em produção, sem
+    # precisar de um servidor web à frente. Vem logo a seguir ao SecurityMiddleware.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     # CORS tem de vir o mais cedo possível, antes do CommonMiddleware, para
     # conseguir adicionar os cabeçalhos certos às respostas.
     "corsheaders.middleware.CorsMiddleware",
@@ -152,8 +158,43 @@ USE_TZ = True  # guarda datas/horas em UTC na BD; boa prática.
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# WhiteNoise: comprime e adiciona hash ao nome dos ficheiros (cache eterna no
+# browser, invalidada quando o conteúdo muda). Usado depois de `collectstatic`.
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
 # Tipo de chave primária por defeito para os models.
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# ---------------------------------------------------------------------------
+# Segurança em produção (só ativa quando DEBUG=False)
+# ---------------------------------------------------------------------------
+# Em desenvolvimento (DEBUG=True) estes ficam desligados para não atrapalhar o
+# trabalho local em http. Em produção, o README promete HTTPS e há dados RGPD,
+# por isso forçamos ligação cifrada e cookies seguros.
+
+if not DEBUG:
+    # Redireciona qualquer http:// para https://.
+    SECURE_SSL_REDIRECT = True
+    # Os cookies de sessão e CSRF só viajam por HTTPS.
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    # HSTS: o browser passa a recusar http durante este período (1 ano).
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    # Confia no cabeçalho do proxy (Railway/Render) para saber que o pedido
+    # original era HTTPS.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    # Origens de confiança para CSRF (o domínio do site). Lê do .env em produção.
+    CSRF_TRUSTED_ORIGINS = config(
+        "CSRF_TRUSTED_ORIGINS", default="", cast=Csv()
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -161,10 +202,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ---------------------------------------------------------------------------
 
 REST_FRAMEWORK = {
-    # Como o utilizador prova quem é. Token para a API (frontend React);
+    # Como o utilizador prova quem é. JWT para a API (frontend React);
     # Session para conseguires usar a "browsable API" autenticado no browser.
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
     # Regra global: por defeito, é preciso estar autenticado para usar a API.
@@ -179,6 +220,8 @@ REST_FRAMEWORK = {
     # Paginação: listas vêm em páginas de 50 para não devolver tudo de uma vez.
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 50,
+    # drf-spectacular gera o esquema OpenAPI a partir dos serializers/views.
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     # ----------------------------------------------------------------------
     # GANCHO PARA O FUTURO (roles/permissões) — NÃO ativar agora.
     # Quando quiseres permissões por papel, o caminho típico é:
@@ -188,4 +231,38 @@ REST_FRAMEWORK = {
     #      de permissão própria) para que o DRF respeite essas permissões.
     # Deixamos a porta aberta; o sistema completo fica para outra fase.
     # ----------------------------------------------------------------------
+}
+
+
+# ---------------------------------------------------------------------------
+# drf-spectacular — documentação OpenAPI / Swagger
+# ---------------------------------------------------------------------------
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "API Gestão de Recursos",
+    "DESCRIPTION": "Gestão de viaturas, equipamentos e alertas de prazos.",
+    "VERSION": "1.0.0",
+    # Não serve o esquema cru na própria UI (a UI já o vai buscar à rota dedicada).
+    "SERVE_INCLUDE_SCHEMA": False,
+    # Faz o botão "Authorize" do Swagger UI lembrar-se do token entre pedidos.
+    "SWAGGER_UI_SETTINGS": {
+        "persistAuthorization": True,
+    },
+}
+# Nota: com JWT, no Swagger UI clica em "Authorize" e escreve
+#   Bearer <access-token>  (a palavra Bearer, espaço, o token de /api/auth/token/).
+
+
+# ---------------------------------------------------------------------------
+# Simple JWT — tempos de vida dos tokens
+# ---------------------------------------------------------------------------
+# Access curto (5 min): se for roubado, expira depressa. Refresh mais longo
+# (1 dia) renova o access sem novo login. ROTATE + BLACKLIST não são usados aqui
+# (exigiriam a app de blacklist e BD); o refresh curto já dá boa margem.
+
+from datetime import timedelta  # noqa: E402  (perto do uso, de propósito)
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }

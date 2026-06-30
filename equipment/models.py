@@ -8,10 +8,10 @@ prazo de validade, por isso herda de RegistoComValidade e entra nos alertas.
 from django.core.exceptions import ValidationError
 from django.db import models
 
-from config.common import RegistoComValidade
+from config.common import RegistoComAuditoria, RegistoComValidade
 
 
-class Equipamento(models.Model):
+class Equipamento(RegistoComAuditoria):
     """Um equipamento da empresa."""
 
     nome = models.CharField("Nome", max_length=120)
@@ -36,7 +36,7 @@ class Equipamento(models.Model):
         return self.nome
 
 
-class Certificado(RegistoComValidade):
+class Certificado(RegistoComValidade, RegistoComAuditoria):
     """Certificação de um equipamento. `data_validade` herdada da base."""
 
     equipamento = models.ForeignKey(

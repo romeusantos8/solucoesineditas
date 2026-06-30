@@ -6,6 +6,8 @@ A página de cada Equipamento mostra os seus certificados em linha (inline).
 
 from django.contrib import admin
 
+from config.common import AuditoriaAdminMixin
+
 from .models import Certificado, Equipamento
 
 
@@ -15,7 +17,7 @@ class CertificadoInline(admin.TabularInline):
 
 
 @admin.register(Equipamento)
-class EquipamentoAdmin(admin.ModelAdmin):
+class EquipamentoAdmin(AuditoriaAdminMixin, admin.ModelAdmin):
     list_display = ("nome", "numero_serie", "ativo")
     list_filter = ("ativo",)
     search_fields = ("nome", "numero_serie")
@@ -23,7 +25,7 @@ class EquipamentoAdmin(admin.ModelAdmin):
 
 
 @admin.register(Certificado)
-class CertificadoAdmin(admin.ModelAdmin):
+class CertificadoAdmin(AuditoriaAdminMixin, admin.ModelAdmin):
     list_display = ("equipamento", "tipo", "data_emissao", "data_validade")
     list_filter = ("tipo",)
     search_fields = ("equipamento__nome", "tipo")

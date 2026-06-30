@@ -24,13 +24,37 @@ class APIAuthTests(APITestCase):
         resp = self.client.get("/api/viaturas/")
         self.assertEqual(resp.status_code, 401)
 
-    def test_obter_token_e_usar(self):
+    def test_login_jwt_devolve_par_de_tokens_e_acede(self):
         User.objects.create_user(username="u", password="segredo123")
         resp = self.client.post(
             "/api/auth/token/", {"username": "u", "password": "segredo123"}
         )
         self.assertEqual(resp.status_code, 200)
-        self.assertIn("token", resp.json())
+        # JWT devolve access + refresh (já não um único "token")
+        self.assertIn("access", resp.json())
+        self.assertIn("refresh", resp.json())
+
+        # o access autentica os pedidos via cabeçalho Bearer
+        access = resp.json()["access"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+        self.assertEqual(self.client.get("/api/viaturas/").status_code, 200)
+
+    def test_refresh_devolve_novo_access(self):
+        User.objects.create_user(username="u", password="segredo123")
+        login = self.client.post(
+            "/api/auth/token/", {"username": "u", "password": "segredo123"}
+        )
+        refresh = login.json()["refresh"]
+        resp = self.client.post("/api/auth/token/refresh/", {"refresh": refresh})
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("access", resp.json())
+
+    def test_credenciais_erradas_dao_401(self):
+        User.objects.create_user(username="u", password="segredo123")
+        resp = self.client.post(
+            "/api/auth/token/", {"username": "u", "password": "errada"}
+        )
+        self.assertEqual(resp.status_code, 401)
 
 
 class ViaturaCrudTests(APITestCase):
@@ -125,6 +149,38 @@ class ValidacaoModelTests(TestCase):
         d = DespesaViatura(viatura=v, descricao="X", valor=Decimal("0.00"), data=date.today())
         with self.assertRaises(ValidationError):
             d.full_clean()
+
+
+class AuditoriaTests(APITestCase):
+    """criado_por/atualizado_por preenchidos com o utilizador do pedido."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="autor", password="segredo123")
+        self.client.force_authenticate(self.user)
+
+    def test_criar_preenche_criado_por(self):
+        resp = self.client.post(
+            "/api/viaturas/",
+            {"matricula": "88-JJ-88", "marca": "X", "modelo": "Y"},
+        )
+        self.assertEqual(resp.status_code, 201)
+        viatura = Viatura.objects.get(id=resp.json()["id"])
+        self.assertEqual(viatura.criado_por, self.user)
+        self.assertEqual(viatura.atualizado_por, self.user)
+        # também aparece (read-only) na resposta
+        self.assertEqual(resp.json()["criado_por"], self.user.id)
+
+    def test_atualizar_muda_so_atualizado_por(self):
+        outro = User.objects.create_user(username="editor", password="segredo123")
+        viatura = Viatura.objects.create(
+            matricula="99-KK-99", marca="X", modelo="Y",
+            criado_por=outro, atualizado_por=outro,
+        )
+        resp = self.client.patch(f"/api/viaturas/{viatura.id}/", {"marca": "Z"})
+        self.assertEqual(resp.status_code, 200)
+        viatura.refresh_from_db()
+        self.assertEqual(viatura.criado_por, outro)       # inalterado
+        self.assertEqual(viatura.atualizado_por, self.user)  # quem editou
 
 
 class ValidacaoApiTests(APITestCase):

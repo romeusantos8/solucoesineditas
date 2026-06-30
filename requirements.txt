@@ -7,6 +7,9 @@ Django==6.0.*                 # Framework web. 6.0 suporta oficialmente Python 3
 djangorestframework==3.17.*   # DRF: transforma o Django numa API REST (3.17+ suporta Django 6.0).
 django-filter==25.1           # Filtros de querystring para a API (ex.: ?viatura=ID).
 django-cors-headers==4.7.0    # Deixa o frontend React (outro porto) chamar a API.
+whitenoise==6.8.2             # Serve os ficheiros estáticos (Admin) em produção.
+drf-spectacular==0.28.0       # Documentação OpenAPI/Swagger auto-gerada da API.
+djangorestframework-simplejwt==5.5.1  # Autenticação JWT (access curto + refresh).
 
 # Driver de PostgreSQL. Usamos o psycopg 3 (não o antigo psycopg2) porque traz
 # binários pré-compilados ("wheels"), o que evita precisares de um compilador C

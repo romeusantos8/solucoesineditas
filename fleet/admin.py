@@ -7,6 +7,8 @@ A página de cada Viatura mostra os seus seguros, inspeções e despesas em linh
 
 from django.contrib import admin
 
+from config.common import AuditoriaAdminMixin
+
 from .models import DespesaViatura, Inspecao, SeguroViatura, Viatura
 
 
@@ -26,7 +28,7 @@ class DespesaViaturaInline(admin.TabularInline):
 
 
 @admin.register(Viatura)
-class ViaturaAdmin(admin.ModelAdmin):
+class ViaturaAdmin(AuditoriaAdminMixin, admin.ModelAdmin):
     list_display = ("matricula", "marca", "modelo", "ano", "ativa")
     list_filter = ("ativa", "marca")
     search_fields = ("matricula", "marca", "modelo")
@@ -34,7 +36,7 @@ class ViaturaAdmin(admin.ModelAdmin):
 
 
 @admin.register(SeguroViatura)
-class SeguroViaturaAdmin(admin.ModelAdmin):
+class SeguroViaturaAdmin(AuditoriaAdminMixin, admin.ModelAdmin):
     list_display = ("viatura", "seguradora", "apolice", "data_validade")
     list_filter = ("seguradora",)
     search_fields = ("viatura__matricula", "seguradora", "apolice")
@@ -42,7 +44,7 @@ class SeguroViaturaAdmin(admin.ModelAdmin):
 
 
 @admin.register(Inspecao)
-class InspecaoAdmin(admin.ModelAdmin):
+class InspecaoAdmin(AuditoriaAdminMixin, admin.ModelAdmin):
     list_display = ("viatura", "data_inspecao", "data_validade", "resultado")
     list_filter = ("resultado",)
     search_fields = ("viatura__matricula",)
@@ -50,7 +52,7 @@ class InspecaoAdmin(admin.ModelAdmin):
 
 
 @admin.register(DespesaViatura)
-class DespesaViaturaAdmin(admin.ModelAdmin):
+class DespesaViaturaAdmin(AuditoriaAdminMixin, admin.ModelAdmin):
     list_display = ("viatura", "descricao", "valor", "data")
     search_fields = ("viatura__matricula", "descricao")
     date_hierarchy = "data"
