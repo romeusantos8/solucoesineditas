@@ -13,9 +13,9 @@ from .serializers import CertificadoSerializer, EquipamentoSerializer
 
 @extend_schema(tags=["Equipamentos"])
 class EquipamentoViewSet(AuditoriaViewSetMixin, viewsets.ModelViewSet):
-    queryset = Equipamento.objects.all()
+    queryset = Equipamento.objects.select_related("responsavel").all()
     serializer_class = EquipamentoSerializer
-    filterset_fields = ["ativo"]
+    filterset_fields = ["ativo", "responsavel"]  # ?responsavel=ID
 
 
 @extend_schema(tags=["Equipamentos"])

@@ -80,7 +80,7 @@ class ClienteObraApiTests(APITestCase):
         resp = self.client.get(f"/api/obras/{obra.id}/")
         body = resp.json()
         self.assertIn("alocacoes_funcionarios", body)
-        self.assertIn("alocacoes_equipamentos", body)
+        self.assertIn("equipamentos_derivados", body)
 
 
 class AlocacaoTests(APITestCase):
@@ -116,15 +116,27 @@ class AlocacaoTests(APITestCase):
         self.assertEqual(resp.status_code, 400)
         self.assertIn("funcionario", resp.json())
 
-    def test_nao_aloca_equipamento_inativo(self):
-        self.equip.ativo = False
+    def test_equipamentos_da_obra_derivam_dos_funcionarios(self):
+        # O equipamento é do funcionário (responsavel). Ao alocar o funcionário
+        # à obra, o equipamento dele aparece nos equipamentos_derivados.
+        self.equip.responsavel = self.func
         self.equip.save()
-        resp = self.client.post("/api/alocacoes-equipamentos/", {
-            "obra": self.obra.id, "equipamento": self.equip.id,
+        self.client.post("/api/alocacoes-funcionarios/", {
+            "obra": self.obra.id, "funcionario": self.func.id,
             "data_inicio": date.today().isoformat(),
         })
-        self.assertEqual(resp.status_code, 400)
-        self.assertIn("equipamento", resp.json())
+        obra = self.client.get(f"/api/obras/{self.obra.id}/").json()
+        derivados = obra["equipamentos_derivados"]
+        self.assertEqual(len(derivados), 1)
+        self.assertEqual(derivados[0]["nome"], "Berbequim")
+        self.assertEqual(derivados[0]["funcionario_id"], self.func.id)
+
+    def test_obra_sem_funcionarios_nao_tem_equipamentos(self):
+        self.equip.responsavel = self.func
+        self.equip.save()
+        # funcionário existe e tem equipamento, mas NÃO está alocado à obra
+        obra = self.client.get(f"/api/obras/{self.obra.id}/").json()
+        self.assertEqual(obra["equipamentos_derivados"], [])
 
     def test_nao_duplica_alocacao_do_mesmo_funcionario(self):
         dados = {

@@ -31,6 +31,7 @@ export default function Funcionarios() {
       tituloForm="Novo funcionário"
       campos={campos}
       colunas={colunas}
+      dica={<>Clica no <strong>nome</strong> de um funcionário para ver despesas e a ficha médica.</>}
       avisoApagar="Não foi possível apagar (pode ter despesas ou alocações associadas)."
     />
   );

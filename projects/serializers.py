@@ -1,21 +1,17 @@
 """
 Serializers de Clientes e Obras.
 
-As alocações (funcionários/equipamentos numa obra) têm endpoints próprios para
-escrita. Na leitura de uma Obra, mostramos as alocações aninhadas (read-only)
-para o cliente ver de uma vez quem/o quê está alocado.
+A alocação de funcionários tem endpoint próprio para escrita; na leitura de uma
+Obra mostramos as alocações aninhadas (read-only). Os equipamentos de uma obra
+são DERIVADOS: são os equipamentos dos funcionários alocados (cada equipamento
+tem um `responsavel`), apresentados como lista só-de-leitura.
 """
 
 from rest_framework import serializers
 
 from config.common import AUDITORIA_FIELDS, ModelCleanSerializerMixin
 
-from .models import (
-    AlocacaoEquipamento,
-    AlocacaoFuncionario,
-    Cliente,
-    Obra,
-)
+from .models import AlocacaoFuncionario, Cliente, Obra
 
 
 class ClienteSerializer(ModelCleanSerializerMixin, serializers.ModelSerializer):
@@ -45,37 +41,42 @@ class AlocacaoFuncionarioSerializer(
         read_only_fields = [*AUDITORIA_FIELDS]
 
 
-class AlocacaoEquipamentoSerializer(
-    ModelCleanSerializerMixin, serializers.ModelSerializer
-):
-    equipamento_nome = serializers.CharField(
-        source="equipamento.nome", read_only=True
-    )
-
-    class Meta:
-        model = AlocacaoEquipamento
-        fields = [
-            "id", "obra", "equipamento", "equipamento_nome",
-            "data_inicio", "data_fim", *AUDITORIA_FIELDS,
-        ]
-        read_only_fields = [*AUDITORIA_FIELDS]
-
-
 class ObraSerializer(ModelCleanSerializerMixin, serializers.ModelSerializer):
-    # Alocações aninhadas só na LEITURA (escrita via /api/alocacoes-*/).
+    # Alocações de funcionários aninhadas só na LEITURA (escrita via /api/alocacoes-funcionarios/).
     alocacoes_funcionarios = AlocacaoFuncionarioSerializer(
         source="alocacaofuncionario_set", many=True, read_only=True
     )
-    alocacoes_equipamentos = AlocacaoEquipamentoSerializer(
-        source="alocacaoequipamento_set", many=True, read_only=True
-    )
+    # Equipamentos derivados: os dos funcionários alocados à obra. Só leitura.
+    equipamentos_derivados = serializers.SerializerMethodField()
 
     class Meta:
         model = Obra
         fields = [
             "id", "cliente", "nome", "descricao",
             "data_inicio", "data_fim_prevista", "estado",
-            "alocacoes_funcionarios", "alocacoes_equipamentos",
+            "alocacoes_funcionarios", "equipamentos_derivados",
             "criado_em", "atualizado_em", *AUDITORIA_FIELDS,
         ]
         read_only_fields = ["criado_em", "atualizado_em", *AUDITORIA_FIELDS]
+
+    def get_equipamentos_derivados(self, obra):
+        """
+        Junta os equipamentos de todos os funcionários alocados à obra. Cada item
+        indica o equipamento e de que funcionário vem.
+        """
+        itens = []
+        vistos = set()
+        for alocacao in obra.alocacaofuncionario_set.all():
+            funcionario = alocacao.funcionario
+            for equip in funcionario.equipamentos.all():
+                if equip.id in vistos:
+                    continue
+                vistos.add(equip.id)
+                itens.append({
+                    "id": equip.id,
+                    "nome": equip.nome,
+                    "numero_serie": equip.numero_serie,
+                    "funcionario_id": funcionario.id,
+                    "funcionario_nome": funcionario.nome,
+                })
+        return itens

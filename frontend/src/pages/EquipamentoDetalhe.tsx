@@ -6,6 +6,7 @@ import { api } from "../api/client";
 import { useCrud } from "../api/useCrud";
 import { type Campo } from "../components/CrudForm";
 import BotaoEditar from "../components/BotaoEditar";
+import BotaoVoltar from "../components/BotaoVoltar";
 import DataTable, { type Coluna } from "../components/DataTable";
 import ModalForm from "../components/ModalForm";
 import type { Certificado, Equipamento } from "../api/types";
@@ -40,6 +41,7 @@ export default function EquipamentoDetalhe() {
 
   return (
     <section>
+      <BotaoVoltar para="/equipamentos" />
       <h1>{equip.nome}</h1>
       {equip.numero_serie && <p className="muted">Nº de série: {equip.numero_serie}</p>}
 

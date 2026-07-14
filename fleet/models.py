@@ -39,9 +39,7 @@ class Viatura(RegistoComAuditoria):
     )
     # `ativa=False` = viatura abatida/vendida, mantida só para histórico.
     ativa = models.BooleanField("Ativa", default=True)
-
-    criado_em = models.DateTimeField("Criado em", auto_now_add=True)
-    atualizado_em = models.DateTimeField("Atualizado em", auto_now=True)
+    # criado_em/atualizado_em e criado_por/atualizado_por vêm de RegistoComAuditoria.
 
     class Meta:
         verbose_name = "Viatura"

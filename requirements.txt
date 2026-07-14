@@ -10,6 +10,7 @@ django-cors-headers==4.7.0    # Deixa o frontend React (outro porto) chamar a AP
 whitenoise==6.8.2             # Serve os ficheiros estáticos (Admin) em produção.
 drf-spectacular==0.28.0       # Documentação OpenAPI/Swagger auto-gerada da API.
 djangorestframework-simplejwt==5.5.1  # Autenticação JWT (access curto + refresh).
+cryptography==46.0.3          # Cifragem dos campos sensíveis das fichas médicas (RGPD).
 
 # Driver de PostgreSQL. Usamos o psycopg 3 (não o antigo psycopg2) porque traz
 # binários pré-compilados ("wheels"), o que evita precisares de um compilador C

@@ -2,7 +2,8 @@
 
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../auth/useAuth";
+import logo from "../assets/logo-si.png";
 
 export default function Login() {
   const { login } = useAuth();
@@ -29,35 +30,40 @@ export default function Login() {
 
   return (
     <div className="login-page">
-      <form className="card login-card" onSubmit={handleSubmit}>
+      <div className="login-card">
+        <span className="login-logo">
+          <img src={logo} alt="Soluções Inéditas" />
+        </span>
         <h1>Gestão de Recursos</h1>
-        <p className="muted">Inicia sessão para continuar.</p>
+        <p className="muted">Soluções Inéditas — inicia sessão para continuar.</p>
 
-        {erro && <div className="alert-erro">{erro}</div>}
+        <form onSubmit={handleSubmit}>
+          {erro && <div className="alert-erro">{erro}</div>}
 
-        <label>
-          Utilizador
-          <input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoFocus
-            required
-          />
-        </label>
-        <label>
-          Palavra-passe
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </label>
+          <label>
+            Utilizador
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoFocus
+              required
+            />
+          </label>
+          <label>
+            Palavra-passe
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </label>
 
-        <button type="submit" disabled={aGuardar}>
-          {aGuardar ? "A entrar…" : "Entrar"}
-        </button>
-      </form>
+          <button type="submit" disabled={aGuardar}>
+            {aGuardar ? "A entrar…" : "Entrar"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

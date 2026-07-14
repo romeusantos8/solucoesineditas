@@ -16,6 +16,7 @@ import FuncionarioDetalhe from "./pages/FuncionarioDetalhe";
 import Login from "./pages/Login";
 import Obras from "./pages/Obras";
 import ObraDetalhe from "./pages/ObraDetalhe";
+import Relatorios from "./pages/Relatorios";
 import Viaturas from "./pages/Viaturas";
 import ViaturaDetalhe from "./pages/ViaturaDetalhe";
 
@@ -41,6 +42,8 @@ export default function App() {
 
           <Route path="/obras" element={<Obras />} />
           <Route path="/obras/:id" element={<ObraDetalhe />} />
+
+          <Route path="/relatorios" element={<Relatorios />} />
         </Route>
       </Route>
 

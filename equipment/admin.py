@@ -18,9 +18,9 @@ class CertificadoInline(admin.TabularInline):
 
 @admin.register(Equipamento)
 class EquipamentoAdmin(AuditoriaAdminMixin, admin.ModelAdmin):
-    list_display = ("nome", "numero_serie", "ativo")
+    list_display = ("nome", "numero_serie", "responsavel", "ativo")
     list_filter = ("ativo",)
-    search_fields = ("nome", "numero_serie")
+    search_fields = ("nome", "numero_serie", "responsavel__nome")
     inlines = [CertificadoInline]
 
 

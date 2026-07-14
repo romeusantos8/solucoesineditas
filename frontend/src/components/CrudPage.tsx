@@ -3,9 +3,11 @@
 // Junta useCrud + ModalForm + DataTable. Uma página de listagem fica reduzida a
 // declarar o recurso, os campos do formulário e as colunas da tabela.
 
+import type { ReactNode } from "react";
 import { useCrud } from "../api/useCrud";
 import BotaoEditar from "./BotaoEditar";
 import DataTable, { type Coluna } from "./DataTable";
+import Dica from "./Dica";
 import ModalForm from "./ModalForm";
 import type { Campo } from "./CrudForm";
 
@@ -19,6 +21,8 @@ interface CrudPageProps<T extends { id: number }> {
   // Aviso mostrado quando o apagar falha (normalmente por PROTECT no backend).
   avisoApagar?: string;
   vazio?: string;
+  // Dica opcional mostrada acima da tabela (ex.: "clica no nome para detalhes").
+  dica?: ReactNode;
 }
 
 export default function CrudPage<T extends { id: number }>({
@@ -30,6 +34,7 @@ export default function CrudPage<T extends { id: number }>({
   colunas,
   avisoApagar = "Não foi possível apagar (pode ter registos associados).",
   vazio,
+  dica,
 }: CrudPageProps<T>) {
   const { itens, aCarregar, erro, criar, editar, apagar } = useCrud<T>(recurso);
 
@@ -54,6 +59,7 @@ export default function CrudPage<T extends { id: number }>({
         />
       </div>
       {erro && <div className="alert-erro">{erro}</div>}
+      {dica && <Dica>{dica}</Dica>}
       {aCarregar ? (
         <p className="muted">A carregar…</p>
       ) : (

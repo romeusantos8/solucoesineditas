@@ -1,19 +1,19 @@
-// Detalhe de uma obra: dados + gestão das alocações de funcionários e
-// equipamentos (alocar/desalocar, cada um com o seu período).
+// Detalhe de uma obra: dados + alocação de funcionários. Os equipamentos da obra
+// são DERIVADOS (os dos funcionários alocados) e mostrados em lista só-leitura.
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { useCrud } from "../api/useCrud";
 import { useOpcoes } from "../api/useOpcoes";
 import { type Campo } from "../components/CrudForm";
 import BotaoEditar from "../components/BotaoEditar";
+import BotaoVoltar from "../components/BotaoVoltar";
 import DataTable, { type Coluna } from "../components/DataTable";
 import ModalForm from "../components/ModalForm";
 import type {
-  AlocacaoEquipamento,
   AlocacaoFuncionario,
-  Equipamento,
+  EquipamentoDerivado,
   Funcionario,
   Obra,
 } from "../api/types";
@@ -24,28 +24,23 @@ export default function ObraDetalhe() {
 
   const [obra, setObra] = useState<Obra | null>(null);
 
-  useEffect(() => {
+  const carregarObra = useCallback(() => {
     api.get<Obra>(`/obras/${obraId}/`).then((res) => setObra(res.data));
   }, [obraId]);
 
-  // Alocações filtradas por esta obra; recarregam quando se aloca/desaloca.
+  useEffect(carregarObra, [carregarObra]);
+
+  // Alocações de funcionários desta obra; recarregam ao alocar/desalocar.
   const aFunc = useCrud<AlocacaoFuncionario>(
     "/alocacoes-funcionarios/",
     `?obra=${obraId}`,
   );
-  const aEquip = useCrud<AlocacaoEquipamento>(
-    "/alocacoes-equipamentos/",
-    `?obra=${obraId}`,
-  );
 
-  // Selects: só ativos (a API rejeita inativos, mas escondê-los melhora a UX).
   const funcionarios = useOpcoes<Funcionario>("/funcionarios/?ativo=true", (f) => f.nome);
-  const equipamentos = useOpcoes<Equipamento>("/equipamentos/?ativo=true", (e) => e.nome);
 
   if (!obra) return <p className="muted">A carregar…</p>;
 
-  // A data de fim de uma alocação não pode ultrapassar o fim previsto da obra
-  // (se a obra tiver um). undefined = sem limite no input.
+  // A data de fim de uma alocação não pode ultrapassar o fim previsto da obra.
   const maxFim = obra.data_fim_prevista ?? undefined;
 
   const camposFunc: Campo[] = [
@@ -53,8 +48,8 @@ export default function ObraDetalhe() {
     { nome: "data_inicio", etiqueta: "Início", tipo: "date", obrigatorio: true },
     { nome: "data_fim", etiqueta: "Fim (opcional)", tipo: "date", max: maxFim },
   ];
-  const camposEquip: Campo[] = [
-    { nome: "equipamento", etiqueta: "Equipamento", obrigatorio: true, opcoes: equipamentos },
+  // Na edição de uma alocação só se mexem as datas (não se troca o funcionário).
+  const camposEditarDatas: Campo[] = [
     { nome: "data_inicio", etiqueta: "Início", tipo: "date", obrigatorio: true },
     { nome: "data_fim", etiqueta: "Fim (opcional)", tipo: "date", max: maxFim },
   ];
@@ -64,31 +59,31 @@ export default function ObraDetalhe() {
     { cabecalho: "Início", render: (a) => a.data_inicio },
     { cabecalho: "Fim", render: (a) => a.data_fim ?? "—" },
   ];
-  const colEquip: Coluna<AlocacaoEquipamento>[] = [
-    { cabecalho: "Equipamento", render: (a) => a.equipamento_nome },
-    { cabecalho: "Início", render: (a) => a.data_inicio },
-    { cabecalho: "Fim", render: (a) => a.data_fim ?? "—" },
+  const colEquip: Coluna<EquipamentoDerivado & { id: number }>[] = [
+    { cabecalho: "Equipamento", render: (e) => e.nome },
+    { cabecalho: "Nº de série", render: (e) => e.numero_serie ?? "—" },
+    { cabecalho: "Via funcionário", render: (e) => e.funcionario_nome },
   ];
 
-  // Na edição de uma alocação só se mexem as datas (não se troca o recurso).
-  const camposEditarDatas: Campo[] = [
-    { nome: "data_inicio", etiqueta: "Início", tipo: "date", obrigatorio: true },
-    { nome: "data_fim", etiqueta: "Fim (opcional)", tipo: "date", max: maxFim },
-  ];
-
-  // Ao criar uma alocação, injeta sempre o id desta obra.
-  const criarFunc = (dados: Record<string, unknown>) =>
-    aFunc.criar({ ...dados, obra: obraId });
-  const criarEquip = (dados: Record<string, unknown>) =>
-    aEquip.criar({ ...dados, obra: obraId });
-
-  async function desalocar(recurso: typeof aFunc | typeof aEquip, id: number) {
+  // Ao criar/remover alocação, injeta a obra e recarrega a obra (para os
+  // equipamentos derivados refletirem os funcionários atuais).
+  async function criarFunc(dados: Record<string, unknown>) {
+    await aFunc.criar({ ...dados, obra: obraId });
+    carregarObra();
+  }
+  async function editarFunc(id: number, dados: Record<string, unknown>) {
+    await aFunc.editar(id, dados);
+    carregarObra();
+  }
+  async function desalocarFunc(id: number) {
     if (!confirm("Remover esta alocação?")) return;
-    await recurso.apagar(id);
+    await aFunc.apagar(id);
+    carregarObra();
   }
 
   return (
     <section>
+      <BotaoVoltar para="/obras" />
       <h1>{obra.nome}</h1>
       <p className="muted">
         Início: {obra.data_inicio}
@@ -103,24 +98,20 @@ export default function ObraDetalhe() {
         colunas={colFunc}
         itens={aFunc.itens}
         acoes={(a) => (
-          <BotaoEditar item={a} titulo="Editar alocação" campos={camposEditarDatas} onEditar={aFunc.editar} />
+          <BotaoEditar item={a} titulo="Editar alocação" campos={camposEditarDatas} onEditar={editarFunc} />
         )}
-        onApagar={(a) => desalocar(aFunc, a.id)}
+        onApagar={(a) => desalocarFunc(a.id)}
         vazio="Nenhum funcionário alocado."
       />
 
-      <div className="acoes-header" style={{ marginTop: "2rem" }}>
-        <h2>Equipamentos alocados</h2>
-        <ModalForm textoBotao="+ Alocar equipamento" titulo="Alocar equipamento" campos={camposEquip} onCriar={criarEquip} />
-      </div>
+      <h2 style={{ marginTop: "2rem" }}>Equipamentos na obra</h2>
+      <p className="muted" style={{ marginBottom: "0.75rem" }}>
+        Derivados automaticamente dos equipamentos dos funcionários alocados.
+      </p>
       <DataTable
         colunas={colEquip}
-        itens={aEquip.itens}
-        acoes={(a) => (
-          <BotaoEditar item={a} titulo="Editar alocação" campos={camposEditarDatas} onEditar={aEquip.editar} />
-        )}
-        onApagar={(a) => desalocar(aEquip, a.id)}
-        vazio="Nenhum equipamento alocado."
+        itens={obra.equipamentos_derivados}
+        vazio="Nenhum equipamento (os funcionários alocados não têm equipamentos)."
       />
     </section>
   );

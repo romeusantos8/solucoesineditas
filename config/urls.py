@@ -49,6 +49,9 @@ urlpatterns = [
     # Dashboard de alertas: prazos a expirar (GET /api/alerts/?dias=N).
     path("api/", include("alerts.urls")),
 
+    # Relatórios (agregações de despesas por mês).
+    path("api/", include("reports.urls")),
+
     # Autenticação JWT: login (par de tokens) e renovação do access.
     path("api/auth/token/", LoginView.as_view(), name="token-obtain"),
     path("api/auth/token/refresh/", RefreshView.as_view(), name="token-refresh"),

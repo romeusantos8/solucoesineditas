@@ -10,6 +10,8 @@ Correr: .\venv\Scripts\python.exe manage.py test health_records
 from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
+from django.db import connection
+from django.test import TestCase
 from rest_framework.test import APITestCase
 
 from employees.models import Funcionario
@@ -17,6 +19,47 @@ from employees.models import Funcionario
 from .models import FichaMedica
 
 User = get_user_model()
+
+
+class CifragemTests(TestCase):
+    """Os campos sensíveis (medico, observacoes) ficam cifrados na BD."""
+
+    def test_campos_cifrados_na_bd_mas_legiveis_via_orm(self):
+        f = Funcionario.objects.create(
+            nome="Ana", funcao="Op", data_admissao=date.today()
+        )
+        ficha = FichaMedica.objects.create(
+            funcionario=f, aptidao="apto", data_exame=date.today(),
+            data_validade=date.today() + timedelta(days=365),
+            medico="Dr. Silva", observacoes="Nota clínica confidencial",
+        )
+        # Via ORM: texto em claro (cifragem transparente).
+        lida = FichaMedica.objects.get(id=ficha.id)
+        self.assertEqual(lida.medico, "Dr. Silva")
+        self.assertEqual(lida.observacoes, "Nota clínica confidencial")
+
+        # Diretamente na BD: cifrado (prefixo enc:), não em claro.
+        with connection.cursor() as cur:
+            cur.execute(
+                "SELECT medico, observacoes FROM health_records_fichamedica WHERE id=%s",
+                [ficha.id],
+            )
+            medico_cru, obs_cru = cur.fetchone()
+        self.assertTrue(medico_cru.startswith("enc:"))
+        self.assertTrue(obs_cru.startswith("enc:"))
+        self.assertNotIn("Silva", medico_cru)
+        self.assertNotIn("confidencial", obs_cru)
+
+    def test_campo_vazio_fica_vazio(self):
+        f = Funcionario.objects.create(
+            nome="B", funcao="Op", data_admissao=date.today()
+        )
+        ficha = FichaMedica.objects.create(
+            funcionario=f, aptidao="apto", data_exame=date.today(),
+            data_validade=date.today() + timedelta(days=365),
+        )
+        self.assertEqual(ficha.medico, "")
+        self.assertEqual(ficha.observacoes, "")
 
 
 class AcessoRestritoTests(APITestCase):

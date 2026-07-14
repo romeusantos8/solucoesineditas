@@ -6,14 +6,8 @@ from rest_framework import viewsets
 
 from config.common import AuditoriaViewSetMixin
 
-from .models import (
-    AlocacaoEquipamento,
-    AlocacaoFuncionario,
-    Cliente,
-    Obra,
-)
+from .models import AlocacaoFuncionario, Cliente, Obra
 from .serializers import (
-    AlocacaoEquipamentoSerializer,
     AlocacaoFuncionarioSerializer,
     ClienteSerializer,
     ObraSerializer,
@@ -27,12 +21,12 @@ class ClienteViewSet(AuditoriaViewSetMixin, viewsets.ModelViewSet):
 
 
 class ObraViewSet(AuditoriaViewSetMixin, viewsets.ModelViewSet):
-    # prefetch_related traz as alocações aninhadas sem N+1 queries.
+    # prefetch: alocações + funcionários + equipamentos de cada funcionário
+    # (para os equipamentos derivados serem calculados sem N+1 queries).
     queryset = (
         Obra.objects.select_related("cliente")
         .prefetch_related(
-            "alocacaofuncionario_set__funcionario",
-            "alocacaoequipamento_set__equipamento",
+            "alocacaofuncionario_set__funcionario__equipamentos",
         )
         .all()
     )
@@ -46,11 +40,3 @@ class AlocacaoFuncionarioViewSet(AuditoriaViewSetMixin, viewsets.ModelViewSet):
     ).all()
     serializer_class = AlocacaoFuncionarioSerializer
     filterset_fields = ["obra", "funcionario"]
-
-
-class AlocacaoEquipamentoViewSet(AuditoriaViewSetMixin, viewsets.ModelViewSet):
-    queryset = AlocacaoEquipamento.objects.select_related(
-        "obra", "equipamento"
-    ).all()
-    serializer_class = AlocacaoEquipamentoSerializer
-    filterset_fields = ["obra", "equipamento"]

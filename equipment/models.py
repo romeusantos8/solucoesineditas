@@ -21,9 +21,19 @@ class Equipamento(RegistoComAuditoria):
         "Nº de série", max_length=80, unique=True, null=True, blank=True
     )
     ativo = models.BooleanField("Ativo", default=True)
-
-    criado_em = models.DateTimeField("Criado em", auto_now_add=True)
-    atualizado_em = models.DateTimeField("Atualizado em", auto_now=True)
+    # Funcionário responsável pelo equipamento (1 equipamento → no máx. 1
+    # funcionário; um funcionário pode ter vários). String p/ evitar import
+    # circular. SET_NULL: desatribuir o funcionário deixa o equipamento sem dono,
+    # não o apaga.
+    responsavel = models.ForeignKey(
+        "employees.Funcionario",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="equipamentos",
+        verbose_name="Responsável",
+    )
+    # Timestamps e auditoria de utilizador vêm de RegistoComAuditoria.
 
     class Meta:
         verbose_name = "Equipamento"

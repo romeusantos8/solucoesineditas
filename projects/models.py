@@ -1,10 +1,10 @@
 """
 Models da app de Clientes e Obras.
 
-Estrutura (README): Cliente tem várias Obras; uma Obra aloca vários Funcionários
-e Equipamentos. As alocações são modeladas com tabelas intermédias explícitas
-(`through`), para cada alocação guardar as suas próprias datas — assim fica
-registado quem/o quê esteve numa obra e durante que período.
+Estrutura: Cliente tem várias Obras; uma Obra aloca vários Funcionários (tabela
+intermédia `AlocacaoFuncionario` com o seu período). Os equipamentos de uma obra
+são DERIVADOS dos funcionários alocados — cada Equipamento tem um `responsavel`
+(ver equipment/models.py), não há alocação direta de equipamento à obra.
 """
 
 from django.core.exceptions import ValidationError
@@ -12,7 +12,6 @@ from django.db import models
 
 from config.common import RegistoComAuditoria, validar_nif
 from employees.models import Funcionario
-from equipment.models import Equipamento
 
 
 class Cliente(RegistoComAuditoria):
@@ -23,9 +22,7 @@ class Cliente(RegistoComAuditoria):
     email = models.EmailField("Email", blank=True)
     telefone = models.CharField("Telefone", max_length=20, blank=True)
     ativo = models.BooleanField("Ativo", default=True)
-
-    criado_em = models.DateTimeField("Criado em", auto_now_add=True)
-    atualizado_em = models.DateTimeField("Atualizado em", auto_now=True)
+    # Timestamps e auditoria de utilizador vêm de RegistoComAuditoria.
 
     class Meta:
         verbose_name = "Cliente"
@@ -69,23 +66,17 @@ class Obra(RegistoComAuditoria):
         default=Estado.PLANEADA,
     )
 
-    # Acesso de conveniência às entidades alocadas. A escrita faz-se pelos
-    # endpoints das alocações (ver AlocacaoFuncionario/AlocacaoEquipamento).
+    # Funcionários alocados à obra (escrita via endpoint AlocacaoFuncionario).
+    # Os equipamentos numa obra são DERIVADOS: são os equipamentos dos
+    # funcionários alocados (cada equipamento tem um `responsavel`). Não há
+    # alocação direta de equipamento à obra.
     funcionarios = models.ManyToManyField(
         Funcionario,
         through="AlocacaoFuncionario",
         related_name="obras",
         verbose_name="Funcionários alocados",
     )
-    equipamentos = models.ManyToManyField(
-        Equipamento,
-        through="AlocacaoEquipamento",
-        related_name="obras",
-        verbose_name="Equipamentos alocados",
-    )
-
-    criado_em = models.DateTimeField("Criado em", auto_now_add=True)
-    atualizado_em = models.DateTimeField("Atualizado em", auto_now=True)
+    # Timestamps e auditoria de utilizador vêm de RegistoComAuditoria.
 
     class Meta:
         verbose_name = "Obra"
@@ -151,6 +142,9 @@ class AlocacaoFuncionario(AlocacaoBase):
     class Meta:
         verbose_name = "Alocação de funcionário"
         verbose_name_plural = "Alocações de funcionários"
+        # Ordenação explícita: sem ela, a paginação pode devolver linhas em ordem
+        # inconsistente entre pedidos (mesma alocação em duas páginas ou nenhuma).
+        ordering = ["-data_inicio"]
         # O mesmo funcionário não pode estar duas vezes na mesma obra.
         unique_together = ("obra", "funcionario")
 
@@ -163,27 +157,4 @@ class AlocacaoFuncionario(AlocacaoBase):
         if self.funcionario_id and not self.funcionario.ativo:
             raise ValidationError(
                 {"funcionario": "Não é possível alocar um funcionário inativo."}
-            )
-
-
-class AlocacaoEquipamento(AlocacaoBase):
-    """Alocação de um equipamento a uma obra, com período próprio."""
-
-    equipamento = models.ForeignKey(
-        Equipamento, on_delete=models.PROTECT, verbose_name="Equipamento"
-    )
-
-    class Meta:
-        verbose_name = "Alocação de equipamento"
-        verbose_name_plural = "Alocações de equipamentos"
-        unique_together = ("obra", "equipamento")
-
-    def __str__(self):
-        return f"{self.equipamento.nome} @ {self.obra.nome}"
-
-    def clean(self):
-        self._validar_datas()
-        if self.equipamento_id and not self.equipamento.ativo:
-            raise ValidationError(
-                {"equipamento": "Não é possível alocar um equipamento inativo."}
             )

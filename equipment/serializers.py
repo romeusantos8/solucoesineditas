@@ -10,6 +10,11 @@ from .models import Certificado, Equipamento
 
 
 class EquipamentoSerializer(serializers.ModelSerializer):
+    # Nome do responsável (read-only) para a UI não ter de o ir buscar à parte.
+    responsavel_nome = serializers.CharField(
+        source="responsavel.nome", read_only=True, default=None
+    )
+
     class Meta:
         model = Equipamento
         fields = [
@@ -17,6 +22,8 @@ class EquipamentoSerializer(serializers.ModelSerializer):
             "nome",
             "numero_serie",
             "ativo",
+            "responsavel",
+            "responsavel_nome",
             "criado_em",
             "atualizado_em",
             *AUDITORIA_FIELDS,

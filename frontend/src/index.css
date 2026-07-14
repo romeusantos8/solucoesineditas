@@ -1,269 +1,1017 @@
-/* Estilos da aplicação (CSS simples, sem frameworks). */
+/* =========================================================================
+   Design system — Gestão de Recursos
+   Estética corporativa para construção/obras: azul-petróleo + ardósia, com
+   âmbar como acento quente. Modo claro por defeito; tokens de modo escuro
+   preparados (ativam-se com [data-theme="dark"] ou prefers-color-scheme).
+   ========================================================================= */
 
 :root {
-  --azul: #2563eb;
-  --cinza-borda: #e2e8f0;
-  --cinza-texto: #64748b;
-  --vermelho: #dc2626;
-  --vermelho-claro: #fee2e2;
-  --amarelo-claro: #fef9c3;
-  --verde-claro: #dcfce7;
+  /* --- Paleta base (raw) --- */
+  --petroleo-50: #ecf3f5;
+  --petroleo-100: #cfe0e4;
+  --petroleo-500: #1f6b78;
+  --petroleo-600: #195661;
+  --petroleo-700: #134450;
+  --petroleo-800: #0f3540;
+
+  --ardosia-50: #f6f8fa;
+  --ardosia-100: #eef1f5;
+  --ardosia-200: #e2e7ee;
+  --ardosia-300: #cdd5e0;
+  --ardosia-400: #94a1b2;
+  --ardosia-500: #64748b;
+  --ardosia-600: #475569;
+  --ardosia-700: #334155;
+  --ardosia-800: #1e293b;
+  --ardosia-900: #0f172a;
+
+  --ambar-100: #fef3c7;
+  --ambar-300: #fcd34d;
+  --ambar-400: #fbbf24;
+  --ambar-500: #f59e0b;
+  --ambar-600: #d97706;
+
+  --vermelho-100: #fee2e2;
+  --vermelho-500: #ef4444;
+  --vermelho-600: #dc2626;
+  --vermelho-700: #b91c1c;
+
+  --verde-100: #d1fae5;
+  --verde-500: #10b981;
+  --verde-600: #059669;
+
+  --azul-100: #dbeafe;
+  --azul-500: #3b82f6;
+  --azul-600: #2563eb;
+
+  /* --- Tokens semânticos (modo claro) --- */
+  --bg: var(--ardosia-50);
+  --surface: #ffffff;
+  --surface-2: var(--ardosia-100);
+  --surface-hover: var(--ardosia-100);
+  --border: var(--ardosia-200);
+  --border-strong: var(--ardosia-300);
+
+  --text: var(--ardosia-900);
+  --text-muted: var(--ardosia-500);
+  --text-inverse: #ffffff;
+
+  --primary: var(--petroleo-500);
+  --primary-hover: var(--petroleo-600);
+  --primary-soft: var(--petroleo-50);
+  --accent: var(--ambar-500);
+  --accent-hover: var(--ambar-600);
+
+  /* Severidades (usadas em alertas/badges) */
+  --critico-bg: var(--vermelho-100);
+  --critico-fg: var(--vermelho-700);
+  --critico-solid: var(--vermelho-500);
+  --aviso-bg: var(--ambar-100);
+  --aviso-fg: var(--ambar-600);
+  --aviso-solid: var(--ambar-500);
+  --info-bg: var(--azul-100);
+  --info-fg: var(--azul-600);
+  --info-solid: var(--azul-500);
+  --ok-bg: var(--verde-100);
+  --ok-fg: var(--verde-600);
+  --ok-solid: var(--verde-500);
+
+  /* --- Espaçamento / raio / sombra --- */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-full: 999px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.16);
+
+  --sidebar-w: 244px;
+  --sidebar-w-colapsada: 68px;
+  --topbar-h: 60px;
+
+  --fonte: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-* {
+/* --- Modo escuro (preparado; ativa por classe ou preferência do SO) --- */
+[data-theme="dark"] {
+  --bg: var(--ardosia-900);
+  --surface: var(--ardosia-800);
+  --surface-2: var(--ardosia-700);
+  --surface-hover: var(--ardosia-700);
+  --border: var(--ardosia-700);
+  --border-strong: var(--ardosia-600);
+
+  --text: var(--ardosia-50);
+  --text-muted: var(--ardosia-400);
+
+  --primary: #2c8a99;
+  --primary-hover: #36a0b0;
+  --primary-soft: rgba(31, 107, 120, 0.16);
+
+  --critico-bg: rgba(239, 68, 68, 0.16);
+  --critico-fg: #fca5a5;
+  --aviso-bg: rgba(245, 158, 11, 0.16);
+  --aviso-fg: var(--ambar-300);
+  --info-bg: rgba(59, 130, 246, 0.16);
+  --info-fg: #93c5fd;
+  --ok-bg: rgba(16, 185, 129, 0.16);
+  --ok-fg: #6ee7b7;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
+}
+
+/* =========================================================================
+   Reset / base
+   ========================================================================= */
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  background: #f8fafc;
-  color: #0f172a;
+  font-family: var(--fonte);
+  font-size: 14px;
+  line-height: 1.5;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
 }
 
-h1 {
-  font-size: 1.5rem;
+h1, h2, h3 {
+  margin: 0;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.15rem; }
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
 }
 
 .muted {
-  color: var(--cinza-texto);
+  color: var(--text-muted);
 }
 
-/* --- Botões e inputs --- */
+/* =========================================================================
+   Botões
+   ========================================================================= */
+
 button {
-  background: var(--azul);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 550;
   cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  padding: 0.5rem 0.95rem;
+  background: var(--primary);
+  color: var(--text-inverse);
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
+}
+button:hover {
+  background: var(--primary-hover);
+}
+button:active {
+  transform: translateY(1px);
 }
 button:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: default;
 }
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+.icon-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn-secundario {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.btn-secundario:hover {
+  background: var(--surface-hover);
+}
+
 .btn-link {
   background: none;
-  color: var(--azul);
-  padding: 0;
+  color: var(--primary);
+  border: none;
+  padding: 0.25rem 0.4rem;
+  font-weight: 550;
+}
+.btn-link:hover {
+  background: var(--surface-hover);
+  text-decoration: none;
 }
 .btn-link.danger {
-  color: var(--vermelho);
+  color: var(--vermelho-600);
 }
+.btn-link.danger:hover {
+  background: var(--critico-bg);
+}
+
+/* Botão só-ícone (ex.: colapsar sidebar). */
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--r-md);
+}
+.icon-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+/* =========================================================================
+   Inputs / selects
+   ========================================================================= */
 
 input,
 select {
-  padding: 0.5rem;
-  border: 1px solid var(--cinza-borda);
-  border-radius: 6px;
-  font-size: 0.9rem;
+  font-family: inherit;
+  font-size: 0.875rem;
+  color: var(--text);
+  background: var(--surface);
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
 }
 
 label {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.85rem;
-  color: var(--cinza-texto);
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 550;
+  color: var(--text-muted);
 }
 
-/* --- Cartões --- */
+/* =========================================================================
+   Cartões
+   ========================================================================= */
+
 .card {
-  background: #fff;
-  border: 1px solid var(--cinza-borda);
-  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   padding: 1.25rem;
-  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .alert-erro {
-  background: var(--vermelho-claro);
-  color: var(--vermelho);
-  padding: 0.6rem 0.8rem;
-  border-radius: 6px;
+  background: var(--critico-bg);
+  color: var(--critico-fg);
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--r-md);
+  border: 1px solid color-mix(in srgb, var(--critico-fg) 25%, transparent);
   margin-bottom: 1rem;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
-/* --- Login --- */
-.login-page {
-  min-height: 100vh;
+/* =========================================================================
+   Badges
+   ========================================================================= */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--r-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badge-critico { background: var(--critico-bg); color: var(--critico-fg); }
+.badge-aviso { background: var(--aviso-bg); color: var(--aviso-fg); }
+.badge-info { background: var(--info-bg); color: var(--info-fg); }
+.badge-ok { background: var(--ok-bg); color: var(--ok-fg); }
+.badge-neutro { background: var(--surface-2); color: var(--text-muted); }
+.badge .ponto {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-full);
+  background: currentColor;
+}
+
+/* =========================================================================
+   Layout: app shell (sidebar + topbar + conteúdo)
+   ========================================================================= */
+
+.app-shell {
   display: grid;
-  place-items: center;
-  padding: 1rem;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  grid-template-rows: var(--topbar-h) 1fr;
+  grid-template-areas:
+    "sidebar topbar"
+    "sidebar main";
+  min-height: 100vh;
+  transition: grid-template-columns 0.2s ease;
 }
-.login-card {
-  width: 100%;
-  max-width: 360px;
-}
-.login-card label {
-  margin-bottom: 0.9rem;
-}
-.login-card button {
-  width: 100%;
+.app-shell.colapsada {
+  grid-template-columns: var(--sidebar-w-colapsada) 1fr;
 }
 
-/* --- Layout autenticado --- */
-.navbar {
+/* --- Sidebar --- */
+.sidebar {
+  grid-area: sidebar;
+  background: var(--petroleo-800);
+  color: #dbe7ea;
+  display: flex;
+  flex-direction: column;
+  padding: 0.85rem 0.7rem;
+  gap: 0.25rem;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+.sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  background: #fff;
-  border-bottom: 1px solid var(--cinza-borda);
-  padding: 0.9rem 1.5rem;
-}
-.navbar-brand {
+  gap: 0.6rem;
+  padding: 0.5rem 0.55rem 1rem;
+  color: #fff;
   font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
 }
-.navbar-links {
+/* Badge branco para o logótipo preto contrastar na sidebar escura. */
+.sidebar-brand .logo {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-full);
+  background: #fff;
+  padding: 3px;
+  box-shadow: var(--shadow-sm);
+}
+.sidebar-brand .logo img,
+.login-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.sidebar-nav {
   display: flex;
-  gap: 1rem;
-  flex: 1;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: 0.25rem;
 }
-.navbar-links a {
-  text-decoration: none;
-  color: var(--cinza-texto);
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.6rem;
+  border-radius: var(--r-md);
+  color: #b8ccd1;
+  font-weight: 550;
   font-size: 0.9rem;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
 }
-.navbar-links a.active {
-  color: var(--azul);
-  font-weight: 600;
+.sidebar-link:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+  text-decoration: none;
 }
-.content {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 1.5rem;
+.sidebar-link.active {
+  background: var(--primary);
+  color: #fff;
+}
+.sidebar-link .icone {
+  flex: 0 0 auto;
+}
+.sidebar-link .rotulo {
+  transition: opacity 0.15s ease;
+}
+.colapsada .sidebar-brand .titulo,
+.colapsada .sidebar-link .rotulo {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
 }
 
-.page-header {
+/* --- Topbar --- */
+.topbar {
+  grid-area: topbar;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 1.25rem;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.topbar-titulo {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.topbar-spacer {
+  flex: 1;
+}
+
+/* Menu de utilizador (avatar + dropdown). */
+.user-menu {
+  position: relative;
+}
+.user-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid transparent;
+  padding: 0.3rem 0.5rem;
+}
+.user-trigger:hover {
+  background: var(--surface-hover);
+}
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-full);
+  background: var(--primary);
+  color: #fff;
+  font-weight: 650;
+  font-size: 0.8rem;
+}
+.user-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 180px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
+  padding: 0.4rem;
+  z-index: 30;
+}
+.user-dropdown button {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+  background: transparent;
+  color: var(--text);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.user-dropdown button:hover {
+  background: var(--surface-hover);
+}
+
+/* --- Conteúdo principal --- */
+.main {
+  grid-area: main;
+  padding: 1.75rem clamp(1rem, 3vw, 2.25rem);
+  max-width: 1200px;
+  width: 100%;
+}
+
+/* =========================================================================
+   Cabeçalho de página + ações
+   ========================================================================= */
+
+.page-header,
+.acoes-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
 }
+.page-header .subtitulo {
+  margin-top: 0.2rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Filtro estilizado (label + select juntos). */
 .filtro {
   flex-direction: row;
   align-items: center;
   gap: 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  padding: 0.3rem 0.3rem 0.3rem 0.7rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.filtro select {
+  border: none;
+  background: transparent;
+  padding: 0.25rem 0.4rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.filtro select:focus {
+  box-shadow: none;
 }
 
-/* --- Formulário em linha --- */
-.form-inline h2 {
-  margin-top: 0;
-  font-size: 1.05rem;
+/* =========================================================================
+   KPIs (cartões de resumo)
+   ========================================================================= */
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
+.kpi {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 1.1rem 1.2rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+.kpi-icone {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  flex: 0 0 auto;
+}
+.kpi-icone.is-critico { background: var(--critico-bg); color: var(--critico-fg); }
+.kpi-icone.is-aviso { background: var(--aviso-bg); color: var(--aviso-fg); }
+.kpi-icone.is-info { background: var(--info-bg); color: var(--info-fg); }
+.kpi-icone.is-ok { background: var(--ok-bg); color: var(--ok-fg); }
+.kpi-valor {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.kpi-rotulo {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* =========================================================================
+   Tabelas
+   ========================================================================= */
+
+.tabela-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.tabela th,
+.tabela td {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.tabela thead th {
+  background: var(--surface-2);
+  font-size: 0.72rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  position: sticky;
+  top: 0;
+}
+.tabela th.ordenavel {
+  cursor: pointer;
+  user-select: none;
+}
+.tabela th.ordenavel:hover {
+  color: var(--text);
+}
+.tabela th .seta {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  margin-left: 0.25rem;
+}
+.tabela tbody tr {
+  transition: background 0.12s ease;
+}
+.tabela tbody tr:hover {
+  background: var(--surface-hover);
+}
+.tabela tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Faixa de severidade à esquerda da linha (alertas). */
+.tabela tr.sev-critico td:first-child { box-shadow: inset 3px 0 0 var(--critico-solid); }
+.tabela tr.sev-aviso td:first-child { box-shadow: inset 3px 0 0 var(--aviso-solid); }
+.tabela tr.sev-info td:first-child { box-shadow: inset 3px 0 0 var(--info-solid); }
+
+.celula-acoes {
+  display: flex;
+  gap: 0.5rem;
+  white-space: nowrap;
+  justify-content: flex-end;
+}
+
+/* Célula com ícone de tipo + texto. */
+.tipo-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.tipo-icone {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  flex: 0 0 auto;
+}
+
+/* =========================================================================
+   Toolbar da tabela (pesquisa + filtros)
+   ========================================================================= */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.campo-pesquisa {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+  max-width: 360px;
+}
+.campo-pesquisa input {
+  width: 100%;
+  padding-left: 2.2rem;
+}
+.campo-pesquisa .lupa {
+  position: absolute;
+  left: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+/* =========================================================================
+   Gráfico de barras (relatórios)
+   ========================================================================= */
+
+.grafico-barras {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  height: 220px;
+  padding-top: 1.5rem;
+}
+.barra-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  height: 100%;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+.barra-col .barra {
+  width: 100%;
+  max-width: 40px;
+  min-height: 2px;
+  background: var(--primary);
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+.barra-col:hover .barra {
+  background: var(--primary-hover);
+}
+.barra-col.ativo .barra {
+  background: var(--accent);
+}
+.barra-col .barra-valor {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-height: 0.9rem;
+}
+.barra-col .barra-rotulo {
+  font-size: 0.72rem;
+  font-weight: 550;
+}
+.barra-col.ativo .barra-rotulo {
+  color: var(--text);
+}
+
+/* =========================================================================
+   Botão "Voltar" (topo das páginas de detalhe)
+   ========================================================================= */
+
+.btn-voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  padding: 0.35rem 0.7rem 0.35rem 0.55rem;
+  font-size: 0.82rem;
+  margin-bottom: 1rem;
+}
+.btn-voltar:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+/* =========================================================================
+   Dica / nota informativa (acima de tabelas)
+   ========================================================================= */
+
+.dica {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: var(--info-bg);
+  color: var(--info-fg);
+  border: 1px solid color-mix(in srgb, var(--info-fg) 22%, transparent);
+  border-radius: var(--r-md);
+  padding: 0.6rem 0.85rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+}
+.dica-icone {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+/* =========================================================================
+   Empty state
+   ========================================================================= */
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  background: var(--surface);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-lg);
+  color: var(--text-muted);
+}
+.empty-state .empty-icone {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 1rem;
+  border-radius: var(--r-full);
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+.empty-state h3 {
+  margin-bottom: 0.35rem;
+}
+
+/* =========================================================================
+   Paginação
+   ========================================================================= */
+
+.paginacao {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  justify-content: flex-end;
+}
+.paginacao .info {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* =========================================================================
+   Formulário em página (mantido para compatibilidade)
+   ========================================================================= */
+
 .form-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
 .form-row input {
   flex: 1;
   min-width: 120px;
 }
 
-/* --- Tabelas --- */
-.tabela {
-  width: 100%;
-  border-collapse: collapse;
-  background: #fff;
-  border: 1px solid var(--cinza-borda);
-  border-radius: 10px;
-  overflow: hidden;
-}
-.tabela th,
-.tabela td {
-  text-align: left;
-  padding: 0.6rem 0.8rem;
-  border-bottom: 1px solid var(--cinza-borda);
-  font-size: 0.9rem;
-}
-.tabela th {
-  background: #f1f5f9;
-  font-weight: 600;
-}
-.tabela tr:last-child td {
-  border-bottom: none;
-}
+/* =========================================================================
+   Modal
+   ========================================================================= */
 
-/* --- Modal (formulário sobre a página, fundo desfocado) --- */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.45);
+  background: rgba(15, 23, 42, 0.5);
   backdrop-filter: blur(4px);
   display: grid;
   place-items: center;
   padding: 1rem;
   z-index: 50;
+  animation: fade-in 0.15s ease;
 }
 .modal-card {
-  background: #fff;
-  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
   padding: 1.5rem;
   width: 100%;
   max-width: 520px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-lg);
+  animation: pop-in 0.18s ease;
 }
 .modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  margin-bottom: 1.1rem;
 }
 .modal-header h2 {
   margin: 0;
-  font-size: 1.15rem;
 }
 .modal-fechar {
-  font-size: 1.1rem;
-  color: var(--cinza-texto);
+  font-size: 1rem;
+  color: var(--text-muted);
 }
-/* Botão que abre o modal, alinhado à direita do cabeçalho da página. */
-.acoes-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-}
-/* Formulário vertical dentro do modal. */
 .form-modal {
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
-}
-.form-modal label {
-  gap: 0.3rem;
+  gap: 1rem;
 }
 .form-modal button[type="submit"] {
-  margin-top: 0.3rem;
+  margin-top: 0.25rem;
 }
 
-/* Botões de ação (Editar/Apagar) lado a lado na última coluna. */
-.celula-acoes {
-  display: flex;
-  gap: 0.75rem;
-  white-space: nowrap;
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Navegação de páginas. */
-.paginacao {
+/* =========================================================================
+   Login
+   ========================================================================= */
+
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background:
+    radial-gradient(1200px 600px at 100% -10%, var(--primary-soft), transparent),
+    var(--bg);
+}
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-md);
+  padding: 2rem;
+}
+.login-card .login-logo {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--r-full);
+  background: #fff;
+  border: 1px solid var(--border);
+  padding: 6px;
+  margin-bottom: 1rem;
+}
+.login-card h1 {
+  margin-bottom: 0.25rem;
+}
+.login-card form {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 1rem;
-  margin-top: 1rem;
+  margin-top: 1.5rem;
+}
+.login-card button[type="submit"] {
+  width: 100%;
+  padding: 0.6rem;
 }
 
-/* Cores por urgência no dashboard de alertas. */
-.row-expirado {
-  background: var(--vermelho-claro);
+/* =========================================================================
+   Responsivo
+   ========================================================================= */
+
+@media (max-width: 860px) {
+  .app-shell,
+  .app-shell.colapsada {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "topbar"
+      "main";
+  }
+  /* Em mobile a sidebar passa a overlay deslizante. */
+  .sidebar {
+    position: fixed;
+    z-index: 60;
+    width: var(--sidebar-w);
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+  .app-shell.menu-aberto .sidebar {
+    transform: translateX(0);
+    box-shadow: var(--shadow-lg);
+  }
+  .backdrop-mobile {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 55;
+  }
 }
-.row-urgente {
-  background: var(--amarelo-claro);
+
+@media (min-width: 861px) {
+  .so-mobile {
+    display: none;
+  }
 }
-.row-proximo {
-  background: var(--verde-claro);
+@media (max-width: 860px) {
+  .nao-mobile {
+    display: none;
+  }
+}
+
+/* Respeita quem prefere menos movimento. */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

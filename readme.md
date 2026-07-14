@@ -14,17 +14,20 @@ prazos**. Os restantes módulos serão adicionados por fases.
 
 ## Funcionalidades
 
-### MVP (em curso)
+### Implementado
 - Gestão de viaturas (CRUD) com seguros, inspeções e despesas associadas
 - Gestão de equipamentos (CRUD) com certificados associados
-- Dashboard de alertas: prazos a expirar nos próximos 30 e 60 dias
-- Autenticação de utilizadores
-
-### Planeado
 - Gestão de funcionários e respetivas despesas
 - Gestão de clientes e obras, com alocação de funcionários e equipamentos
-- Fichas médicas dos funcionários (dados sensíveis — ver nota de RGPD)
-- Sistema de permissões por perfil (role)
+- Fichas médicas dos funcionários (dados sensíveis — acesso restrito a staff; ver nota de RGPD)
+- Dashboard de alertas: prazos a expirar (janela configurável, por defeito próximos
+  60 dias + expirados nos últimos 90), abrangendo seguros, inspeções, certificados
+  e fichas médicas
+- Autenticação por JWT (access + refresh); frontend React completo
+
+### Planeado
+- Sistema de permissões por perfil (role) — o "gancho" já está no settings
+- Reforço RGPD das fichas médicas (cifragem dos campos sensíveis em base de dados)
 
 ## Stack tecnológica
 

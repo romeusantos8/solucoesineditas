@@ -1,29 +1,20 @@
 """
 Registo dos models de Clientes e Obras no Django Admin.
 
-A página de cada Obra mostra as alocações de funcionários e equipamentos em
-linha (inlines), para as gerir num só sítio.
+A página de cada Obra mostra as alocações de funcionários em linha (inline).
+Os equipamentos de uma obra são derivados dos funcionários alocados (ver
+serializers) — não há alocação direta de equipamento à obra.
 """
 
 from django.contrib import admin
 
 from config.common import AuditoriaAdminMixin
 
-from .models import (
-    AlocacaoEquipamento,
-    AlocacaoFuncionario,
-    Cliente,
-    Obra,
-)
+from .models import AlocacaoFuncionario, Cliente, Obra
 
 
 class AlocacaoFuncionarioInline(admin.TabularInline):
     model = AlocacaoFuncionario
-    extra = 0
-
-
-class AlocacaoEquipamentoInline(admin.TabularInline):
-    model = AlocacaoEquipamento
     extra = 0
 
 
@@ -40,16 +31,10 @@ class ObraAdmin(AuditoriaAdminMixin, admin.ModelAdmin):
     list_filter = ("estado",)
     search_fields = ("nome", "cliente__nome")
     date_hierarchy = "data_inicio"
-    inlines = [AlocacaoFuncionarioInline, AlocacaoEquipamentoInline]
+    inlines = [AlocacaoFuncionarioInline]
 
 
 @admin.register(AlocacaoFuncionario)
 class AlocacaoFuncionarioAdmin(AuditoriaAdminMixin, admin.ModelAdmin):
     list_display = ("funcionario", "obra", "data_inicio", "data_fim")
     search_fields = ("funcionario__nome", "obra__nome")
-
-
-@admin.register(AlocacaoEquipamento)
-class AlocacaoEquipamentoAdmin(AuditoriaAdminMixin, admin.ModelAdmin):
-    list_display = ("equipamento", "obra", "data_inicio", "data_fim")
-    search_fields = ("equipamento__nome", "obra__nome")

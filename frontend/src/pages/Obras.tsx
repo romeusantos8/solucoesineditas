@@ -7,6 +7,7 @@ import { useOpcoes } from "../api/useOpcoes";
 import { type Campo } from "../components/CrudForm";
 import BotaoEditar from "../components/BotaoEditar";
 import DataTable, { type Coluna } from "../components/DataTable";
+import Dica from "../components/Dica";
 import ModalForm from "../components/ModalForm";
 import type { Cliente, EstadoObra, Obra } from "../api/types";
 
@@ -28,7 +29,7 @@ const colunas: Coluna<Obra>[] = [
   {
     cabecalho: "Alocados",
     render: (o) =>
-      `${o.alocacoes_funcionarios.length} func. / ${o.alocacoes_equipamentos.length} equip.`,
+      `${o.alocacoes_funcionarios.length} func. / ${o.equipamentos_derivados.length} equip.`,
   },
 ];
 
@@ -60,6 +61,10 @@ export default function Obras() {
         <ModalForm textoBotao="+ Nova obra" titulo="Nova obra" campos={campos} onCriar={criar} />
       </div>
       {erro && <div className="alert-erro">{erro}</div>}
+      <Dica>
+        Clica no <strong>nome</strong> de uma obra para alocar funcionários e ver
+        os equipamentos na obra.
+      </Dica>
       {aCarregar ? (
         <p className="muted">A carregar…</p>
       ) : (

@@ -60,6 +60,8 @@ export interface Equipamento extends Auditoria {
   nome: string;
   numero_serie: string | null;
   ativo: boolean;
+  responsavel: number | null;
+  responsavel_nome: string | null;
   criado_em: string;
   atualizado_em: string;
 }
@@ -118,13 +120,13 @@ export interface AlocacaoFuncionario extends Auditoria {
   data_fim: string | null;
 }
 
-export interface AlocacaoEquipamento extends Auditoria {
+// Equipamento derivado numa obra (vem do funcionário responsável, só leitura).
+export interface EquipamentoDerivado {
   id: number;
-  obra: number;
-  equipamento: number;
-  equipamento_nome: string;
-  data_inicio: string;
-  data_fim: string | null;
+  nome: string;
+  numero_serie: string | null;
+  funcionario_id: number;
+  funcionario_nome: string;
 }
 
 export interface Obra extends Auditoria {
@@ -136,7 +138,7 @@ export interface Obra extends Auditoria {
   data_fim_prevista: string | null;
   estado: EstadoObra;
   alocacoes_funcionarios: AlocacaoFuncionario[];
-  alocacoes_equipamentos: AlocacaoEquipamento[];
+  equipamentos_derivados: EquipamentoDerivado[];
   criado_em: string;
   atualizado_em: string;
 }
@@ -155,6 +157,27 @@ export interface FichaMedica extends Auditoria {
   observacoes: string;
   criado_em: string;
   atualizado_em: string;
+}
+
+// --- Relatórios ---
+export interface TotalMensal {
+  mes: number; // 1-12
+  total: string;
+}
+export interface DespesaDetalhe {
+  id: number;
+  descricao: string;
+  valor: string;
+  data: string;
+}
+export interface RelatorioDespesas {
+  tipo: "funcionario" | "viatura";
+  entidade: number;
+  ano: number;
+  total_ano: string;
+  meses: TotalMensal[];
+  mes?: number;
+  detalhe?: DespesaDetalhe[];
 }
 
 // Item do dashboard de alertas (/api/alerts/). Forma unificada das fontes.

@@ -6,6 +6,7 @@ import { api } from "../api/client";
 import { useCrud } from "../api/useCrud";
 import { type Campo } from "../components/CrudForm";
 import BotaoEditar from "../components/BotaoEditar";
+import BotaoVoltar from "../components/BotaoVoltar";
 import DataTable, { type Coluna } from "../components/DataTable";
 import ModalForm from "../components/ModalForm";
 import FichaMedicaSeccao from "../components/FichaMedicaSeccao";
@@ -43,6 +44,7 @@ export default function FuncionarioDetalhe() {
 
   return (
     <section>
+      <BotaoVoltar para="/funcionarios" />
       <h1>{func.nome}</h1>
       <p className="muted">{func.funcao}{func.nif ? ` · NIF ${func.nif}` : ""}</p>
 

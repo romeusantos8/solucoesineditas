@@ -40,6 +40,7 @@ export default function DataTable<T extends { id: number }>({
   const temAcoes = Boolean(acoes || onApagar);
 
   return (
+    <div className="tabela-wrap">
     <table className="tabela">
       <thead>
         <tr>
@@ -69,5 +70,6 @@ export default function DataTable<T extends { id: number }>({
         ))}
       </tbody>
     </table>
+    </div>
   );
 }

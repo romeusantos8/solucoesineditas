@@ -30,6 +30,7 @@ export default function Viaturas() {
       tituloForm="Nova viatura"
       campos={campos}
       colunas={colunas}
+      dica={<>Clica na <strong>matrícula</strong> de uma viatura para ver seguros, inspeções e despesas.</>}
       avisoApagar="Não foi possível apagar (pode ter seguros/inspeções associados)."
     />
   );

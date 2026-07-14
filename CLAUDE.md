@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Visão geral
 
-Aplicação de gestão de recursos de uma pequena empresa (viaturas, equipamentos), com foco no **controlo de prazos críticos** (seguros, inspeções, certificados) através de um dashboard de alertas. Backend Django + DRF (PostgreSQL); frontend React (Vite + TypeScript) em `frontend/`. Os comentários, nomes e mensagens do código estão em **português (pt-PT)** — manter essa convenção.
+Aplicação de gestão de recursos de uma pequena empresa de construção ("Soluções Inéditas"): viaturas, equipamentos, funcionários, clientes e obras. Foco no **controlo de prazos críticos** (seguros, inspeções, certificados, fichas médicas) através de um dashboard de alertas. Backend Django + DRF (PostgreSQL); frontend React (Vite + TypeScript) em `frontend/`. Os comentários, nomes e mensagens do código estão em **português (pt-PT)** — manter essa convenção.
 
 ## Ambiente e comandos
 
@@ -42,17 +42,22 @@ Desenvolvimento local precisa de **dois terminais** (backend em :8000, frontend 
 Projeto Django `config/` + apps de domínio. Convenção Django (MVT≈MVC): `models.py` = Model, `views.py` = Controller, e o "template" numa API é o JSON dos serializers.
 
 - **`config/`** — projeto Django (settings, urls raiz). Não é uma app instalada.
-- **`config/common.py`** — peças partilhadas entre apps. **Ler este ficheiro primeiro** ao mexer em models/serializers; contém os dois mecanismos transversais (ver abaixo).
-- **`accounts/`** — autenticação. `models.py` está vazio de propósito: usa-se o `User`/`Group` do Django.
+- **`config/common.py`** — peças partilhadas entre apps. **Ler este ficheiro primeiro** ao mexer em models/serializers; contém os mecanismos transversais (ver abaixo).
+- **`accounts/`** — autenticação. `models.py` está vazio de propósito: usa-se o `User`/`Group` do Django. (Sem testes próprios; o fluxo JWT é testado em `fleet/tests.py`.)
 - **`fleet/`** — `Viatura` (entidade central) + `SeguroViatura`, `Inspecao`, `DespesaViatura`.
 - **`equipment/`** — `Equipamento` + `Certificado`.
-- **`alerts/`** — dashboard de prazos. **Só lê** as outras apps (importa os models de fleet/equipment mas nunca os altera). Não tem models nem migrações próprias.
+- **`employees/`** — `Funcionario` + `DespesaFuncionario`. Valida NIF português (`validar_nif` em `config/common.py`).
+- **`projects/`** — `Cliente`, `Obra`, e as alocações `AlocacaoFuncionario`/`AlocacaoEquipamento` (M2M com `through` explícito; cada alocação tem o seu período e regras — só ativos, datas dentro da obra).
+- **`health_records/`** — `FichaMedica` (dados de saúde, RGPD). **Acesso restrito a staff** (`IsAdminUser`), ao contrário do resto da API. Ver `# TODO RGPD` no model (cifragem pendente).
+- **`alerts/`** — dashboard de prazos. **Só lê** as outras apps (importa os models mas nunca os altera). Não tem models nem migrações próprias. Junta 4 fontes: seguros, inspeções, certificados e fichas médicas.
 
-### Dois mecanismos transversais (em `config/common.py`)
+### Mecanismos transversais (em `config/common.py`)
 
-1. **`RegistoComValidade`** — model abstrato base de todos os registos que expiram (`SeguroViatura`, `Inspecao`, `Certificado`). Centraliza o campo `data_validade` e as properties calculadas `dias_para_expirar` / `expirado`. Qualquer novo tipo de registo com prazo deve herdar daqui — é o que permite o endpoint de alertas tratar as 3 fontes por igual.
+1. **`RegistoComValidade`** — model abstrato base de todos os registos que expiram (`SeguroViatura`, `Inspecao`, `Certificado`, `FichaMedica`). Centraliza o campo `data_validade` e as properties calculadas `dias_para_expirar` / `expirado`. Qualquer novo tipo de registo com prazo deve herdar daqui — é o que permite o endpoint de alertas tratar todas as fontes por igual.
 
-2. **`ModelCleanSerializerMixin`** — faz o serializer DRF correr o `clean()` do model na validação, convertendo erros Django→DRF (resposta 400). **Padrão de validação do projeto:** as regras de negócio vivem UMA vez no model (`clean()` para lógica multi-campo / normalização; field `validators` para limites simples), e este mixin propaga-as para a API. Adicionar o mixin ao `ModelSerializer` de qualquer model que defina `clean()`. O Admin já chama `clean()` automaticamente. (Subtileza: o mixin relê os `attrs` da instância depois do `clean()` para que normalizações — ex.: matrícula em maiúsculas — cheguem a ser persistidas.)
+2. **`RegistoComAuditoria`** — model abstrato com `criado_por`/`atualizado_por` (FK User, `SET_NULL`) **e** `criado_em`/`atualizado_em` (timestamps). Os timestamps estão centralizados aqui (não repetir nos models). Preenchido pelo `AuditoriaViewSetMixin` (na API: `perform_create`/`perform_update`) e pelo `AuditoriaAdminMixin` (no Admin: `save_model`). Os serializers expõem os campos via constante `AUDITORIA_FIELDS` (read-only).
+
+3. **`ModelCleanSerializerMixin`** — faz o serializer DRF correr o `clean()` do model na validação, convertendo erros Django→DRF (resposta 400). **Padrão de validação do projeto:** as regras de negócio vivem UMA vez no model (`clean()` para lógica multi-campo / normalização; field `validators` para limites simples), e este mixin propaga-as para a API. Adicionar o mixin ao `ModelSerializer` de qualquer model que defina `clean()`. O Admin já chama `clean()` automaticamente. (Subtileza: o mixin relê os `attrs` da instância depois do `clean()` para que normalizações — ex.: matrícula em maiúsculas — cheguem a ser persistidas.)
 
 ### Relações e regras
 
@@ -63,14 +68,19 @@ Projeto Django `config/` + apps de domínio. Convenção Django (MVT≈MVC): `mo
 
 Todos os endpoints sob `/api/`, exigem autenticação (`IsAuthenticated` global), com paginação (50/página) e filtros via `django-filter` (`filterset_fields` em cada ViewSet, ex.: `?viatura=ID`). Cada app de domínio expõe `serializers.py`, `views.py` (ModelViewSet) e `urls.py` (DefaultRouter), ligados em `config/urls.py`.
 
-- CRUD: `/api/viaturas/`, `/api/seguros/`, `/api/inspecoes/`, `/api/despesas/`, `/api/equipamentos/`, `/api/certificados/`.
-- Auth por **Token**: `POST /api/auth/token/` (username+password → token), depois `Authorization: Token <token>`.
-- **`/api/alerts/?dias=N`** — não é um ViewSet, é uma `APIView` que junta as 3 fontes de prazo numa lista plana ordenada (mais urgente primeiro, inclui já expirados). Default 60 dias; `dias` inválido/negativo → 400.
+- CRUD: `/api/viaturas/`, `/api/seguros/`, `/api/inspecoes/`, `/api/despesas/`, `/api/equipamentos/`, `/api/certificados/`, `/api/funcionarios/`, `/api/despesas-funcionarios/`, `/api/clientes/`, `/api/obras/`, `/api/alocacoes-funcionarios/`, `/api/alocacoes-equipamentos/`, `/api/fichas-medicas/` (só staff).
+- Auth por **JWT** (`djangorestframework-simplejwt`): `POST /api/auth/token/` (username+password → `{access, refresh}`), `POST /api/auth/token/refresh/` (refresh → novo access). Enviar `Authorization: Bearer <access>`. Access curto (5 min) + refresh (1 dia), em `SIMPLE_JWT`.
+- **`/api/alerts/?dias=N&expirados_desde=M`** — não é um ViewSet, é uma `APIView` (paginada manualmente) que junta as 4 fontes de prazo numa lista plana ordenada (mais urgente primeiro). `dias` (default 60) = janela futura; `expirados_desde` (default 90) = fundo que corta o histórico antigo de expirados. Valores inválidos/negativos → 400.
+- **Swagger/OpenAPI** (`drf-spectacular`): UI em `/api/docs/`, esquema em `/api/schema/`. ViewSets agrupados por tags (Frota, Equipamentos, Funcionários, Clientes, Obras, Alertas, Autenticação) via `@extend_schema(tags=[...])`.
+- **Produção**: `whitenoise` serve os estáticos do Admin; settings de segurança (HSTS, cookies seguros, SSL redirect) ativam quando `DEBUG=False`.
 
 ### Frontend (`frontend/`)
 
-React + TS, CSS simples (sem framework de UI). CORS no backend (`django-cors-headers`) permite o Vite (:5173) chamar a API. Pontos centrais:
-- `src/api/client.ts` — instância axios única; um interceptor injeta o token (do `localStorage`) em todos os pedidos. baseURL vem de `VITE_API_URL` (default `http://127.0.0.1:8000/api`).
-- `src/auth/AuthContext.tsx` — estado de auth global; token persistido no `localStorage`.
-- Rotas protegidas por `components/ProtectedRoute.tsx`; `App.tsx` tem o mapa de rotas; páginas em `src/pages/`.
+React + TS, CSS próprio (sem framework de UI) — design system em `src/index.css` (custom properties, tokens claro/escuro, layout com sidebar). CORS no backend (`django-cors-headers`) permite o Vite (:5173) chamar a API. Pontos centrais:
+- `src/api/client.ts` — instância axios única. Interceptor de **request** injeta `Authorization: Bearer <access>`; interceptor de **response** renova o access via `/auth/token/refresh/` quando um pedido leva 401 e repete-o (usa um `refreshClient` axios separado para evitar loop; retry único). baseURL vem de `VITE_API_URL` (default `http://127.0.0.1:8000/api`).
+- `src/auth/tokens.ts` — gere o par de tokens JWT no `localStorage`. `src/auth/AuthContext.tsx` — estado de auth (booleano).
+- **Fundação reutilizável** (evita repetir CRUD por página): `src/api/useCrud.ts` (hook list/criar/editar(PATCH)/apagar paginado + `primeiraMensagemErro`), `src/api/useOpcoes.ts` (carrega lista p/ `<select>`), e componentes declarativos `components/{DataTable,CrudForm,CrudPage,ModalForm,BotaoEditar,Modal}.tsx`. As páginas de listagem reduzem-se a declarar campos+colunas.
+- Rotas protegidas por `components/ProtectedRoute.tsx`; `App.tsx` tem o mapa de rotas (`/<entidade>` e `/<entidade>/:id` para detalhes); páginas em `src/pages/`.
 - `src/api/types.ts` espelha os serializers do backend — manter a par quando a API mudar.
+
+> Padrão de campo opcional no `CrudForm`: vazio vai como `""` para texto/email (no backend `CharField(blank=True)` sem `null=True`), mas como `null` para número/data/select e para campos `vazioComoNull` (texto unique+nullable, ex.: NIF, nº de série).

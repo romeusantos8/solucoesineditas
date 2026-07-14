@@ -33,9 +33,7 @@ class Funcionario(RegistoComAuditoria):
     ativo = models.BooleanField("Ativo", default=True)
     email = models.EmailField("Email", blank=True)
     telefone = models.CharField("Telefone", max_length=20, blank=True)
-
-    criado_em = models.DateTimeField("Criado em", auto_now_add=True)
-    atualizado_em = models.DateTimeField("Atualizado em", auto_now=True)
+    # Timestamps e auditoria de utilizador vêm de RegistoComAuditoria.
 
     class Meta:
         verbose_name = "Funcionário"

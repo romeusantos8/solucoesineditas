@@ -17,6 +17,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 from config.common import RegistoComAuditoria, RegistoComValidade
+from config.encryption import EncryptedTextField
 from employees.models import Funcionario
 
 
@@ -43,11 +44,11 @@ class FichaMedica(RegistoComValidade, RegistoComAuditoria):
     )
     data_exame = models.DateField("Data do exame")
     # data_validade herdada de RegistoComValidade (validade do exame).
-    medico = models.CharField("Médico / entidade", max_length=160, blank=True)
-    observacoes = models.TextField("Observações", blank=True)
-
-    criado_em = models.DateTimeField("Criado em", auto_now_add=True)
-    atualizado_em = models.DateTimeField("Atualizado em", auto_now=True)
+    # `medico` e `observacoes` são CIFRADOS na BD (texto livre, potencialmente
+    # clínico — dados de saúde RGPD). Ver config/encryption.py.
+    medico = EncryptedTextField("Médico / entidade", blank=True)
+    observacoes = EncryptedTextField("Observações", blank=True)
+    # Timestamps e auditoria de utilizador vêm de RegistoComAuditoria.
 
     class Meta:
         verbose_name = "Ficha médica"

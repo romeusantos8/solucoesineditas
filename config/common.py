@@ -68,12 +68,14 @@ AUDITORIA_FIELDS = ("criado_por", "atualizado_por")
 
 class RegistoComAuditoria(models.Model):
     """
-    Base que regista QUEM criou e alterou pela última vez um registo. Para uma
-    ferramenta de gestão empresarial (e RGPD), saber quem mexeu em quê é
-    requisito comum — e é barato agora, caro de acrescentar retroativamente.
+    Base que regista QUEM e QUANDO criou/alterou um registo. Para uma ferramenta
+    de gestão empresarial (e RGPD), saber quem mexeu em quê (e quando) é requisito
+    comum — e é barato agora, caro de acrescentar retroativamente. Centralizar
+    aqui os timestamps evita repeti-los em cada model e cobre tudo de forma
+    uniforme (incluindo os filhos: seguros, certificados, alocações, etc.).
 
-    Os campos são opcionais (null) porque registos criados fora de um pedido
-    autenticado (ex.: shell, migração de dados) não têm utilizador associado.
+    Os campos de utilizador são opcionais (null) porque registos criados fora de
+    um pedido autenticado (ex.: shell, migração) não têm utilizador associado.
     on_delete=SET_NULL: apagar um utilizador não apaga o histórico que ele criou.
     """
 
@@ -93,6 +95,8 @@ class RegistoComAuditoria(models.Model):
         related_name="+",
         verbose_name="Atualizado por",
     )
+    criado_em = models.DateTimeField("Criado em", auto_now_add=True)
+    atualizado_em = models.DateTimeField("Atualizado em", auto_now=True)
 
     class Meta:
         abstract = True

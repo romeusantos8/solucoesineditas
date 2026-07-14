@@ -6,6 +6,7 @@ import { api } from "../api/client";
 import { useCrud } from "../api/useCrud";
 import { type Campo } from "../components/CrudForm";
 import BotaoEditar from "../components/BotaoEditar";
+import BotaoVoltar from "../components/BotaoVoltar";
 import DataTable, { type Coluna } from "../components/DataTable";
 import ModalForm from "../components/ModalForm";
 import type {
@@ -76,6 +77,7 @@ export default function ViaturaDetalhe() {
 
   return (
     <section>
+      <BotaoVoltar para="/viaturas" />
       <h1>{viatura.matricula}</h1>
       <p className="muted">{viatura.marca} {viatura.modelo}</p>
 
