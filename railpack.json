@@ -13,7 +13,7 @@
       ],
       "commands": [
         "...",
-        "npm ci --prefix frontend"
+        "npm install --prefix frontend"
       ]
     },
     "build": {
