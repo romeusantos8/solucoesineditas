@@ -34,9 +34,18 @@ class ReactAppView(View):
     """
 
     def get(self, request, *args, **kwargs):
-        index = settings.FRONTEND_DIST / "index.html"
-        if index.exists():
-            return HttpResponse(index.read_bytes())
+        # Procura o index.html em dois sítios, por esta ordem:
+        #  1) STATIC_ROOT — para onde o `collectstatic` copia o build. É o que
+        #     sobrevive garantidamente ao runtime em produção (o container que
+        #     corre o gunicorn tem os estáticos recolhidos, mas pode não trazer
+        #     a pasta frontend/dist original).
+        #  2) frontend/dist — o build direto do Vite (caminho em dev local).
+        for index in (
+            settings.STATIC_ROOT / "index.html",
+            settings.FRONTEND_DIST / "index.html",
+        ):
+            if index.exists():
+                return HttpResponse(index.read_bytes())
         return HttpResponse(
             "Build do frontend não encontrado. Corre "
             "<code>npm run build --prefix frontend</code> "

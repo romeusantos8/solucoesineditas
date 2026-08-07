@@ -16,17 +16,20 @@ cmds = [
   "npm ci --prefix frontend",
 ]
 
-[phases.build]
-cmds = [
-  # Compila o React para frontend/dist.
-  "npm run build --prefix frontend",
-  # Recolhe os estáticos (Admin + assets do React) para STATIC_ROOT.
-  "python manage.py collectstatic --no-input",
-]
+# NOTA: não há fase [build] com passos próprios. O build do React, o
+# collectstatic e o migrate correm todos no arranque (ver [start]). Razão: o
+# Nixpacks nem sempre preserva o que se gera na fase [build] para o container de
+# runtime (o staticfiles/ estava a faltar). Gerando tudo no arranque, garante-se
+# que está no mesmo container onde corre o gunicorn.
 
 [start]
-# As migrações correm AQUI (no arranque, não no build): o build e o runtime
-# podem ser containers diferentes, e a BD só está garantidamente acessível em
-# runtime. Se o migrate falhar, o arranque falha de forma clara. Só depois
-# arranca o gunicorn. $PORT é fornecido pelo Railway.
-cmd = "python manage.py migrate --no-input && gunicorn config.wsgi --bind 0.0.0.0:$PORT"
+# Ordem no arranque:
+#  1) npm ci          -> garante o node_modules do frontend (a fase [install]
+#                         pode não sobreviver ao runtime, tal como o staticfiles);
+#  2) build do React  -> frontend/dist (com base=/static/ e paths corretos);
+#  3) collectstatic    -> recolhe Admin + assets do React para STATIC_ROOT
+#                         (servidos pelo WhiteNoise);
+#  4) migrate          -> aplica migrações (a BD só está acessível em runtime);
+#  5) gunicorn         -> servidor WSGI de produção. $PORT vem do Railway.
+# Se qualquer passo falhar, o arranque falha de forma clara (o && corta a cadeia).
+cmd = "npm ci --prefix frontend && npm run build --prefix frontend && python manage.py collectstatic --no-input && python manage.py migrate --no-input && gunicorn config.wsgi --bind 0.0.0.0:$PORT"
