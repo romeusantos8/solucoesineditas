@@ -15,14 +15,19 @@ import {
 } from "../auth/tokens";
 
 // Base da API. Prioridade:
-//  1) VITE_API_URL, se definida (ex.: produção).
-//  2) O mesmo host pelo qual o browser abriu o site, na porta 8000. Assim, quer
-//     abras por localhost quer por um IP da rede (ex.: 172.20.10.3), o frontend
-//     chama o backend no mesmo endereço — sem hardcode. O backend (Django) tem
-//     de estar a ouvir nesse host (runserver 0.0.0.0:8000).
+//  1) VITE_API_URL, se definida (permite apontar para outro backend).
+//  2) DEV (Vite): o mesmo host pelo qual o browser abriu o site, na porta 8000.
+//     Assim, quer abras por localhost quer por um IP da rede (ex.: 172.20.10.3),
+//     o frontend chama o backend no mesmo endereço — sem hardcode. O backend
+//     (Django) tem de estar a ouvir nesse host (runserver 0.0.0.0:8000).
+//  3) PRODUÇÃO (build): caminho relativo "/api" — o mesmo domínio/protocolo por
+//     onde o site foi servido (o Django serve a app E a API). Sem porta 8000 e
+//     sem http fixo (evita mixed-content sob HTTPS).
 const baseURL =
   import.meta.env.VITE_API_URL ??
-  `http://${window.location.hostname}:8000/api`;
+  (import.meta.env.DEV
+    ? `http://${window.location.hostname}:8000/api`
+    : "/api");
 
 export const api = axios.create({ baseURL });
 

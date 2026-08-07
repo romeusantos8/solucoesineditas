@@ -4,11 +4,11 @@ Models da app de Fichas Médicas.
 ⚠️ DADOS DE SAÚDE — categoria especial ao abrigo do RGPD (art. 9.º). Esta app
 trata aptidão médica dos funcionários. Medidas já aplicadas:
 - acesso restrito (ver views: só staff/admin);
-- separada das outras apps, para facilitar controlo de acesso e auditoria.
+- separada das outras apps, para facilitar controlo de acesso e auditoria;
+- campos de texto livre (médico, observações) CIFRADOS em repouso na BD, com
+  chave fora do código (ver config/encryption.py e FIELD_ENCRYPTION_KEY).
 
-# TODO RGPD (fase seguinte, antes de produção real com dados verdadeiros):
-#   - cifrar os campos sensíveis na base de dados (ex.: django-cryptography ou
-#     pgcrypto), não os guardar em claro;
+# TODO RGPD (melhorias futuras, não bloqueantes):
 #   - registo de acessos (quem consultou que ficha e quando);
 #   - política de retenção / minimização.
 """

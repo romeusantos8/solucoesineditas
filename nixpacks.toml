@@ -1,0 +1,32 @@
+# Configuração do build para o Railway (Nixpacks).
+#
+# Precisamos de Python (backend) E Node (para compilar o React). Por defeito o
+# Nixpacks só detetaria um deles; aqui garantimos ambos e definimos os passos.
+
+[phases.setup]
+# Ambientes necessários: Python 3.14, Node 22, e pip.
+nixPkgs = ["python314", "nodejs_22", "postgresql"]
+
+[phases.install]
+cmds = [
+  # Dependências do backend.
+  "python -m pip install --upgrade pip",
+  "python -m pip install -r requirements.txt",
+  # Dependências do frontend.
+  "npm ci --prefix frontend",
+]
+
+[phases.build]
+cmds = [
+  # Compila o React para frontend/dist.
+  "npm run build --prefix frontend",
+  # Recolhe os estáticos (Admin + assets do React) para STATIC_ROOT.
+  "python manage.py collectstatic --no-input",
+]
+
+[start]
+# As migrações correm AQUI (no arranque, não no build): o build e o runtime
+# podem ser containers diferentes, e a BD só está garantidamente acessível em
+# runtime. Se o migrate falhar, o arranque falha de forma clara. Só depois
+# arranca o gunicorn. $PORT é fornecido pelo Railway.
+cmd = "python manage.py migrate --no-input && gunicorn config.wsgi --bind 0.0.0.0:$PORT"

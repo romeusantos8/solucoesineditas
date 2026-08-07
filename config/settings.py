@@ -30,8 +30,25 @@ DEBUG = config("DEBUG", default=False, cast=bool)
 # Csv() transforma "127.0.0.1,localhost" numa lista ['127.0.0.1', 'localhost'].
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="", cast=Csv())
 
+# O Railway expõe o domínio público da app nesta variável de ambiente. Juntamo-lo
+# automaticamente ao ALLOWED_HOSTS (e ao CSRF abaixo), para não ser preciso saber
+# o domínio de antemão nem o escrever à mão.
+RAILWAY_DOMAIN = config("RAILWAY_PUBLIC_DOMAIN", default="")
+if RAILWAY_DOMAIN:
+    ALLOWED_HOSTS.append(RAILWAY_DOMAIN)
+
+# O Railway acede à app internamente (health check, rede privada) por um host
+# diferente do domínio público — .railway.internal e o domínio privado do
+# serviço. Sem estes, o health check pode falhar com "DisallowedHost".
+RAILWAY_PRIVATE_DOMAIN = config("RAILWAY_PRIVATE_DOMAIN", default="")
+if RAILWAY_PRIVATE_DOMAIN:
+    ALLOWED_HOSTS.append(RAILWAY_PRIVATE_DOMAIN)
+if RAILWAY_DOMAIN or RAILWAY_PRIVATE_DOMAIN:
+    ALLOWED_HOSTS.append(".railway.internal")
+
 # Origens (frontend) autorizadas a chamar a API. O React em dev corre no Vite
-# (http://localhost:5173). Em produção, acrescenta aqui o domínio do site.
+# (http://localhost:5173). Em produção o React é servido pelo próprio Django
+# (mesmo domínio), por isso o CORS deixa de ser necessário lá.
 CORS_ALLOWED_ORIGINS = config(
     "CORS_ALLOWED_ORIGINS",
     default="http://localhost:5173,http://127.0.0.1:5173",
@@ -116,19 +133,35 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 
 # ---------------------------------------------------------------------------
-# Base de dados — PostgreSQL (credenciais vêm do .env)
+# Base de dados — PostgreSQL
 # ---------------------------------------------------------------------------
+# Em produção (Railway), a ligação vem numa única variável DATABASE_URL. Em
+# local, usamos as 5 variáveis POSTGRES_* do .env. dj_database_url traduz a URL.
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": config("POSTGRES_DB"),
-        "USER": config("POSTGRES_USER"),
-        "PASSWORD": config("POSTGRES_PASSWORD"),
-        "HOST": config("POSTGRES_HOST", default="127.0.0.1"),
-        "PORT": config("POSTGRES_PORT", default="5432"),
+import dj_database_url  # noqa: E402 (perto do uso, de propósito)
+
+DATABASE_URL = config("DATABASE_URL", default="")
+
+if DATABASE_URL:
+    # Produção: uma só URL (postgres://user:pass@host:porta/bd). conn_max_age
+    # mantém a ligação aberta entre pedidos; ssl_require força TLS.
+    DATABASES = {
+        "default": dj_database_url.parse(
+            DATABASE_URL, conn_max_age=600, ssl_require=True
+        )
     }
-}
+else:
+    # Local: variáveis separadas.
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": config("POSTGRES_DB"),
+            "USER": config("POSTGRES_USER"),
+            "PASSWORD": config("POSTGRES_PASSWORD"),
+            "HOST": config("POSTGRES_HOST", default="127.0.0.1"),
+            "PORT": config("POSTGRES_PORT", default="5432"),
+        }
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -160,6 +193,13 @@ USE_TZ = True  # guarda datas/horas em UTC na BD; boa prática.
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# Build do frontend React (gerado por `npm run build --prefix frontend`). Em
+# produção, o Django serve estes ficheiros (arquitetura de 1 só serviço). Os
+# assets do React (JS/CSS com hash) ficam em dist/assets e são recolhidos pelo
+# collectstatic; o index.html é servido pela view apanha-tudo (ver config/urls.py).
+FRONTEND_DIST = BASE_DIR / "frontend" / "dist"
+STATICFILES_DIRS = [FRONTEND_DIST] if FRONTEND_DIST.exists() else []
+
 # WhiteNoise: comprime e adiciona hash ao nome dos ficheiros (cache eterna no
 # browser, invalidada quando o conteúdo muda). Usado depois de `collectstatic`.
 STORAGES = {
@@ -168,6 +208,8 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+# Não falhar o collectstatic se o manifest referir um ficheiro em falta (defensivo).
+WHITENOISE_MANIFEST_STRICT = False
 
 # Tipo de chave primária por defeito para os models.
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -193,10 +235,13 @@ if not DEBUG:
     # Confia no cabeçalho do proxy (Railway/Render) para saber que o pedido
     # original era HTTPS.
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    # Origens de confiança para CSRF (o domínio do site). Lê do .env em produção.
+    # Origens de confiança para CSRF (o domínio do site). Lê do .env, e junta
+    # automaticamente o domínio do Railway (com https://) se estiver definido.
     CSRF_TRUSTED_ORIGINS = config(
         "CSRF_TRUSTED_ORIGINS", default="", cast=Csv()
     )
+    if RAILWAY_DOMAIN:
+        CSRF_TRUSTED_ORIGINS.append(f"https://{RAILWAY_DOMAIN}")
 
 
 # ---------------------------------------------------------------------------

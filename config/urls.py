@@ -9,8 +9,11 @@ O cliente envia `Authorization: Bearer <access>` nos restantes pedidos. O access
 é curto (5 min); quando expira, usa-se o refresh para obter outro sem novo login.
 """
 
+from django.conf import settings
 from django.contrib import admin
-from django.urls import include, path
+from django.http import HttpResponse
+from django.urls import include, path, re_path
+from django.views.generic import View
 from drf_spectacular.utils import extend_schema
 from drf_spectacular.views import (
     SpectacularAPIView,
@@ -20,6 +23,27 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+
+
+class ReactAppView(View):
+    """
+    Serve o index.html do build do React para qualquer rota que não seja da API.
+    O React Router trata da navegação no cliente; assim, dar refresh numa página
+    interna (ex.: /obras/3) devolve a app em vez de 404. Em dev (sem build) dá
+    uma mensagem a explicar como gerar o build.
+    """
+
+    def get(self, request, *args, **kwargs):
+        index = settings.FRONTEND_DIST / "index.html"
+        if index.exists():
+            return HttpResponse(index.read_bytes())
+        return HttpResponse(
+            "Build do frontend não encontrado. Corre "
+            "<code>npm run build --prefix frontend</code> "
+            "(em desenvolvimento usa antes o Vite: "
+            "<code>npm run dev --prefix frontend</code>).",
+            status=200,
+        )
 
 # Subclasses só para agrupar estes endpoints na secção "Autenticação" do Swagger.
 # São públicos por natureza (login/refresh) — o simplejwt já trata disso.
@@ -66,4 +90,9 @@ urlpatterns = [
 
     # Login/logout da Browsable API (para testar autenticado no browser).
     path("api-auth/", include("rest_framework.urls")),
+
+    # Apanha-tudo: qualquer outra rota devolve a app React (index.html). TEM de
+    # ser a ÚLTIMA — só apanha o que não corresponder às rotas acima (api/,
+    # admin/, etc.). É o que faz o React Router funcionar com refresh/links diretos.
+    re_path(r"^(?!api/|admin/|static/|api-auth/).*$", ReactAppView.as_view()),
 ]

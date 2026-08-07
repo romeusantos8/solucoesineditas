@@ -20,3 +20,8 @@ psycopg[binary]==3.2.*
 # Lê configurações/segredos a partir do ficheiro .env (ou de variáveis de
 # ambiente em produção). Mantém segredos FORA do código — boa prática e RGPD.
 python-decouple==3.8
+
+# --- Produção (usados no alojamento; gunicorn é Unix-only, não corre em Windows,
+#     mas isso é OK — em local usa-se `runserver`). ---
+gunicorn==23.0.0              # Servidor WSGI de produção (aguenta vários pedidos).
+dj-database-url==2.3.0        # Lê a ligação à BD de uma única DATABASE_URL.
