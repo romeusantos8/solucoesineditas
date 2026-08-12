@@ -14,6 +14,12 @@ from .models import DespesaViatura, Inspecao, SeguroViatura, Viatura
 
 
 class ViaturaSerializer(ModelCleanSerializerMixin, serializers.ModelSerializer):
+    # Nome do responsável, só de leitura, para as listas mostrarem o nome sem
+    # um pedido extra. Mesmo padrão do EquipamentoSerializer.
+    responsavel_nome = serializers.CharField(
+        source="responsavel.nome", read_only=True, default=None
+    )
+
     class Meta:
         model = Viatura
         fields = [
@@ -23,6 +29,8 @@ class ViaturaSerializer(ModelCleanSerializerMixin, serializers.ModelSerializer):
             "modelo",
             "ano",
             "ativa",
+            "responsavel",
+            "responsavel_nome",
             "criado_em",
             "atualizado_em",
             *AUDITORIA_FIELDS,
@@ -44,6 +52,7 @@ class SeguroViaturaSerializer(ModelCleanSerializerMixin, serializers.ModelSerial
             "apolice",
             "data_inicio",
             "data_validade",
+            "valor",
             "dias_para_expirar",
             *AUDITORIA_FIELDS,
         ]

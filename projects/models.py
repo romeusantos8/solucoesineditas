@@ -7,7 +7,11 @@ são DERIVADOS dos funcionários alocados — cada Equipamento tem um `responsav
 (ver equipment/models.py), não há alocação direta de equipamento à obra.
 """
 
+from datetime import date
+from decimal import Decimal
+
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models
 
 from config.common import RegistoComAuditoria, validar_nif
@@ -157,4 +161,68 @@ class AlocacaoFuncionario(AlocacaoBase):
         if self.funcionario_id and not self.funcionario.ativo:
             raise ValidationError(
                 {"funcionario": "Não é possível alocar um funcionário inativo."}
+            )
+
+
+class AutoObra(RegistoComAuditoria):
+    """
+    Auto mensal de uma obra: o que se faturou (ou vai faturar) num dado mês. É a
+    base do relatório de faturação por obra. Cada auto pertence a um mês/ano e
+    tem um valor; o `estado` distingue o que já foi faturado do que falta.
+    """
+
+    class Estado(models.TextChoices):
+        POR_FATURAR = "por_faturar", "Por faturar"
+        FATURADO = "faturado", "Faturado"
+
+    obra = models.ForeignKey(
+        Obra,
+        on_delete=models.PROTECT,  # não se apaga uma obra com autos (histórico)
+        related_name="autos",
+        verbose_name="Obra",
+    )
+    ano = models.PositiveIntegerField(
+        "Ano",
+        # Limite inferior defensivo; o superior fica no clean() (ano-atual+1).
+        validators=[MinValueValidator(2000)],
+    )
+    mes = models.PositiveSmallIntegerField(
+        "Mês",
+        validators=[MinValueValidator(1)],  # o máximo (12) é validado no clean()
+    )
+    valor = models.DecimalField(
+        "Valor (€)",
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
+    descricao = models.CharField("Descrição", max_length=200, blank=True)
+    estado = models.CharField(
+        "Estado",
+        max_length=12,
+        choices=Estado.choices,
+        default=Estado.POR_FATURAR,
+    )
+    # Timestamps e auditoria de utilizador vêm de RegistoComAuditoria.
+
+    class Meta:
+        verbose_name = "Auto de obra"
+        verbose_name_plural = "Autos de obras"
+        # Mais recentes primeiro (ano, depois mês). Ordenação explícita: sem ela
+        # a paginação pode devolver linhas em ordem inconsistente entre pedidos.
+        ordering = ["-ano", "-mes"]
+        # Um auto por mês/ano por obra (evita duplicados do mesmo período).
+        unique_together = ("obra", "ano", "mes")
+
+    def __str__(self):
+        return f"Auto {self.mes:02d}/{self.ano} — {self.obra.nome} ({self.valor}€)"
+
+    def clean(self):
+        # O mês tem de estar entre 1 e 12 (o validator só cobre o mínimo).
+        if self.mes is not None and self.mes > 12:
+            raise ValidationError({"mes": "O mês tem de estar entre 1 e 12."})
+        # O ano não pode ser no futuro (além do próximo, para autos já previstos).
+        if self.ano is not None and self.ano > date.today().year + 1:
+            raise ValidationError(
+                {"ano": f"O ano não pode ser superior a {date.today().year + 1}."}
             )

@@ -5,7 +5,14 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
 import { useOpcoes } from "../api/useOpcoes";
 import Dica from "../components/Dica";
-import type { Funcionario, RelatorioDespesas, Viatura } from "../api/types";
+import type {
+  Funcionario,
+  Obra,
+  RelatorioDespesas,
+  RelatorioEquipamentosFuncionario,
+  RelatorioFaturacaoObra,
+  Viatura,
+} from "../api/types";
 
 const MESES = [
   "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
@@ -69,7 +76,7 @@ export default function Relatorios() {
       <div className="page-header">
         <div>
           <h1>Relatórios</h1>
-          <p className="subtitulo">Despesas por mês de funcionários e viaturas.</p>
+          <p className="subtitulo">Despesas por mês de funcionários e viaturas. Faturação por obra e equipamentos de funcionários.</p>
         </div>
       </div>
 
@@ -184,6 +191,180 @@ export default function Relatorios() {
           )}
         </>
       )}
+
+      <hr style={{ margin: "2.5rem 0", border: "none", borderTop: "1px solid var(--border)" }} />
+      <FaturacaoObra />
+
+      <hr style={{ margin: "2.5rem 0", border: "none", borderTop: "1px solid var(--border)" }} />
+      <EquipamentosPorFuncionario />
     </section>
+  );
+}
+
+// --- Relatório: faturação por obra (total + lista de autos) ---
+function FaturacaoObra() {
+  const [obra, setObra] = useState<string>("");
+  const [dados, setDados] = useState<RelatorioFaturacaoObra | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const obras = useOpcoes<Obra>("/obras/", (o) => o.nome);
+
+  useEffect(() => {
+    if (!obra) {
+      setDados(null);
+      return;
+    }
+    setErro(null);
+    api
+      .get<RelatorioFaturacaoObra>(`/reports/faturacao-obra/?obra=${obra}`)
+      .then((res) => setDados(res.data))
+      .catch(() => setErro("Não foi possível carregar o relatório."));
+  }, [obra]);
+
+  return (
+    <div>
+      <h2>Faturação por obra</h2>
+      <p className="subtitulo">Total faturado numa obra e os seus autos mensais.</p>
+      <div className="card" style={{ margin: "1rem 0" }}>
+        <label>
+          Obra
+          <select value={obra} onChange={(e) => setObra(e.target.value)}>
+            <option value="">Selecionar…</option>
+            {obras.map((o) => (
+              <option key={o.valor} value={o.valor}>{o.texto}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {erro && <div className="alert-erro">{erro}</div>}
+
+      {dados && (
+        <>
+          <div className="kpi-grid">
+            <div className="kpi">
+              <span className="kpi-icone is-info">€</span>
+              <div>
+                <div className="kpi-valor">{eur(dados.total)}</div>
+                <div className="kpi-rotulo">Total (todos os autos)</div>
+              </div>
+            </div>
+            <div className="kpi">
+              <span className="kpi-icone is-ok">✓</span>
+              <div>
+                <div className="kpi-valor">{eur(dados.total_faturado)}</div>
+                <div className="kpi-rotulo">Já faturado</div>
+              </div>
+            </div>
+            <div className="kpi">
+              <span className="kpi-icone is-aviso">…</span>
+              <div>
+                <div className="kpi-valor">{eur(dados.total_por_faturar)}</div>
+                <div className="kpi-rotulo">Por faturar</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="tabela-wrap" style={{ marginTop: "1rem" }}>
+            <table className="tabela">
+              <thead>
+                <tr>
+                  <th>Período</th>
+                  <th>Descrição</th>
+                  <th>Estado</th>
+                  <th style={{ textAlign: "right" }}>Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dados.autos.length === 0 ? (
+                  <tr><td colSpan={4} className="muted" style={{ textAlign: "center" }}>
+                    Sem autos nesta obra.
+                  </td></tr>
+                ) : (
+                  dados.autos.map((a) => (
+                    <tr key={a.id}>
+                      <td>{String(a.mes).padStart(2, "0")}/{a.ano}</td>
+                      <td>{a.descricao || "—"}</td>
+                      <td>{a.estado_display}</td>
+                      <td style={{ textAlign: "right" }}>{eur(a.valor)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// --- Relatório: equipamentos de um funcionário ---
+function EquipamentosPorFuncionario() {
+  const [func, setFunc] = useState<string>("");
+  const [dados, setDados] = useState<RelatorioEquipamentosFuncionario | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const funcionarios = useOpcoes<Funcionario>("/funcionarios/", (f) => f.nome);
+
+  useEffect(() => {
+    if (!func) {
+      setDados(null);
+      return;
+    }
+    setErro(null);
+    api
+      .get<RelatorioEquipamentosFuncionario>(
+        `/reports/equipamentos-funcionario/?funcionario=${func}`,
+      )
+      .then((res) => setDados(res.data))
+      .catch(() => setErro("Não foi possível carregar o relatório."));
+  }, [func]);
+
+  return (
+    <div>
+      <h2>Equipamentos por funcionário</h2>
+      <p className="subtitulo">Equipamentos à responsabilidade de um funcionário.</p>
+      <div className="card" style={{ margin: "1rem 0" }}>
+        <label>
+          Funcionário
+          <select value={func} onChange={(e) => setFunc(e.target.value)}>
+            <option value="">Selecionar…</option>
+            {funcionarios.map((o) => (
+              <option key={o.valor} value={o.valor}>{o.texto}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {erro && <div className="alert-erro">{erro}</div>}
+
+      {dados && (
+        <div className="tabela-wrap">
+          <table className="tabela">
+            <thead>
+              <tr>
+                <th>Equipamento</th>
+                <th>Nº de série</th>
+                <th>Ativo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dados.equipamentos.length === 0 ? (
+                <tr><td colSpan={3} className="muted" style={{ textAlign: "center" }}>
+                  {dados.funcionario_nome} não tem equipamentos à responsabilidade.
+                </td></tr>
+              ) : (
+                dados.equipamentos.map((e) => (
+                  <tr key={e.id}>
+                    <td>{e.nome}</td>
+                    <td>{e.numero_serie ?? "—"}</td>
+                    <td>{e.ativo ? "Sim" : "Não"}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }

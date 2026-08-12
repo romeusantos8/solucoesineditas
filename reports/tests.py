@@ -11,7 +11,9 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 
 from employees.models import DespesaFuncionario, Funcionario
+from equipment.models import Equipamento
 from fleet.models import DespesaViatura, Viatura
+from projects.models import AutoObra, Cliente, Obra
 
 User = get_user_model()
 
@@ -100,3 +102,90 @@ class DespesasMensaisTests(APITestCase):
         )
         fev = next(m for m in resp.json()["meses"] if m["mes"] == 2)
         self.assertEqual(fev["total"], "200.00")
+
+
+FATURACAO_URL = "/api/reports/faturacao-obra/"
+
+
+class FaturacaoObraTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="u", password="segredo123")
+        self.client.force_authenticate(self.user)
+        cliente = Cliente.objects.create(nome="Cliente X")
+        self.obra = Obra.objects.create(
+            cliente=cliente, nome="Obra A", data_inicio=date(2026, 1, 1)
+        )
+        # Dois autos faturados (100 + 250) e um por faturar (80).
+        AutoObra.objects.create(
+            obra=self.obra, ano=2026, mes=1, valor=Decimal("100.00"),
+            estado=AutoObra.Estado.FATURADO,
+        )
+        AutoObra.objects.create(
+            obra=self.obra, ano=2026, mes=2, valor=Decimal("250.00"),
+            estado=AutoObra.Estado.FATURADO,
+        )
+        AutoObra.objects.create(
+            obra=self.obra, ano=2026, mes=3, valor=Decimal("80.00"),
+            estado=AutoObra.Estado.POR_FATURAR,
+        )
+
+    def test_exige_autenticacao(self):
+        self.client.force_authenticate(None)
+        resp = self.client.get(f"{FATURACAO_URL}?obra={self.obra.id}")
+        self.assertEqual(resp.status_code, 401)
+
+    def test_totais_e_lista(self):
+        resp = self.client.get(f"{FATURACAO_URL}?obra={self.obra.id}")
+        self.assertEqual(resp.status_code, 200)
+        dados = resp.json()
+        self.assertEqual(dados["total"], "430.00")
+        self.assertEqual(dados["total_faturado"], "350.00")
+        self.assertEqual(dados["total_por_faturar"], "80.00")
+        self.assertEqual(len(dados["autos"]), 3)
+
+    def test_obra_inexistente_da_400(self):
+        resp = self.client.get(f"{FATURACAO_URL}?obra=999999")
+        self.assertEqual(resp.status_code, 400)
+
+    def test_obra_em_falta_da_400(self):
+        resp = self.client.get(FATURACAO_URL)
+        self.assertEqual(resp.status_code, 400)
+
+
+EQUIP_FUNC_URL = "/api/reports/equipamentos-funcionario/"
+
+
+class EquipamentosFuncionarioTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="u", password="segredo123")
+        self.client.force_authenticate(self.user)
+        self.func = Funcionario.objects.create(
+            nome="Ana", funcao="Técnica", data_admissao=date(2026, 1, 1)
+        )
+        self.outro = Funcionario.objects.create(
+            nome="Rui", funcao="Op", data_admissao=date(2026, 1, 1)
+        )
+        # Dois equipamentos da Ana, um do Rui.
+        Equipamento.objects.create(nome="Berbequim", responsavel=self.func)
+        Equipamento.objects.create(nome="Martelo", responsavel=self.func)
+        Equipamento.objects.create(nome="Serra", responsavel=self.outro)
+
+    def test_lista_so_do_funcionario(self):
+        resp = self.client.get(f"{EQUIP_FUNC_URL}?funcionario={self.func.id}")
+        self.assertEqual(resp.status_code, 200)
+        dados = resp.json()
+        self.assertEqual(dados["total"], 2)
+        nomes = {e["nome"] for e in dados["equipamentos"]}
+        self.assertEqual(nomes, {"Berbequim", "Martelo"})
+
+    def test_funcionario_sem_equipamentos(self):
+        vazio = Funcionario.objects.create(
+            nome="Zé", funcao="X", data_admissao=date(2026, 1, 1)
+        )
+        resp = self.client.get(f"{EQUIP_FUNC_URL}?funcionario={vazio.id}")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["total"], 0)
+
+    def test_funcionario_inexistente_da_400(self):
+        resp = self.client.get(f"{EQUIP_FUNC_URL}?funcionario=999999")
+        self.assertEqual(resp.status_code, 400)

@@ -13,7 +13,7 @@ import { primeiraMensagemErro } from "../api/useCrud";
 export interface Campo {
   nome: string;
   etiqueta: string;
-  tipo?: "text" | "number" | "date" | "email";
+  tipo?: "text" | "number" | "date" | "email" | "month";
   obrigatorio?: boolean;
   // Para campos de escolha (select). Se presente, rende um <select>.
   opcoes?: { valor: string | number; texto: string }[];
@@ -22,6 +22,9 @@ export interface Campo {
   vazioComoNull?: boolean;
   // Limite superior para campos de data (atributo HTML max="YYYY-MM-DD").
   max?: string;
+  // Valor pré-selecionado na CRIAÇÃO (ex.: estado "Ativo" por defeito). Em
+  // edição, os valoresIniciais do item têm sempre prioridade sobre isto.
+  padrao?: string;
 }
 
 interface CrudFormProps {
@@ -40,7 +43,16 @@ export default function CrudForm({
   textoBotao = "Guardar",
   valoresIniciais = {},
 }: CrudFormProps) {
-  const [valores, setValores] = useState<Record<string, string>>(valoresIniciais);
+  // Estado inicial: começa dos valores por defeito de cada campo (só relevantes
+  // na criação) e por cima aplica os valoresIniciais (item em edição têm
+  // prioridade). Assim um campo com `padrao` já vem escolhido ao criar.
+  const [valores, setValores] = useState<Record<string, string>>(() => {
+    const base: Record<string, string> = {};
+    for (const campo of campos) {
+      if (campo.padrao !== undefined) base[campo.nome] = campo.padrao;
+    }
+    return { ...base, ...valoresIniciais };
+  });
   const [erro, setErro] = useState<string | null>(null);
   const [aGuardar, setAGuardar] = useState(false);
 

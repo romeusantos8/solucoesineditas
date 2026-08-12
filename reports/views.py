@@ -21,8 +21,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from employees.models import DespesaFuncionario
+from employees.models import DespesaFuncionario, Funcionario
+from equipment.models import Equipamento
 from fleet.models import DespesaViatura
+from projects.models import AutoObra, Obra
 
 # Config por tipo: model e nome do campo FK correspondente.
 _FONTES = {
@@ -101,3 +103,91 @@ class DespesasMensaisView(APIView):
             ]
 
         return Response(resposta)
+
+
+class FaturacaoObraView(APIView):
+    """
+    Total faturado numa obra + lista dos seus autos mensais.
+
+    GET /api/reports/faturacao-obra/?obra=ID
+      - obra: id da obra (obrigatório)
+    Devolve o total de todos os autos, o total só dos já faturados, e a lista
+    de autos (mais recentes primeiro).
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        obra_id = _inteiro(request, "obra")
+        try:
+            obra = Obra.objects.get(pk=obra_id)
+        except Obra.DoesNotExist:
+            raise ValidationError({"obra": "Obra não encontrada."})
+
+        autos = obra.autos.all()  # já ordenados por -ano, -mes (Meta.ordering)
+
+        total = autos.aggregate(t=Sum("valor"))["t"] or Decimal("0.00")
+        total_faturado = (
+            autos.filter(estado=AutoObra.Estado.FATURADO).aggregate(
+                t=Sum("valor")
+            )["t"]
+            or Decimal("0.00")
+        )
+
+        return Response({
+            "obra": obra.id,
+            "obra_nome": obra.nome,
+            "total": str(total),
+            "total_faturado": str(total_faturado),
+            "total_por_faturar": str(total - total_faturado),
+            "autos": [
+                {
+                    "id": a.id,
+                    "ano": a.ano,
+                    "mes": a.mes,
+                    "valor": str(a.valor),
+                    "descricao": a.descricao,
+                    "estado": a.estado,
+                    "estado_display": a.get_estado_display(),
+                }
+                for a in autos
+            ],
+        })
+
+
+class EquipamentosFuncionarioView(APIView):
+    """
+    Equipamentos à responsabilidade de um funcionário.
+
+    GET /api/reports/equipamentos-funcionario/?funcionario=ID
+      - funcionario: id do funcionário (obrigatório)
+    Devolve a lista de equipamentos de que esse funcionário é responsável.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        funcionario_id = _inteiro(request, "funcionario")
+        try:
+            funcionario = Funcionario.objects.get(pk=funcionario_id)
+        except Funcionario.DoesNotExist:
+            raise ValidationError({"funcionario": "Funcionário não encontrado."})
+
+        equipamentos = Equipamento.objects.filter(
+            responsavel_id=funcionario_id
+        ).order_by("nome")
+
+        return Response({
+            "funcionario": funcionario.id,
+            "funcionario_nome": funcionario.nome,
+            "total": equipamentos.count(),
+            "equipamentos": [
+                {
+                    "id": e.id,
+                    "nome": e.nome,
+                    "numero_serie": e.numero_serie,
+                    "ativo": e.ativo,
+                }
+                for e in equipamentos
+            ],
+        })

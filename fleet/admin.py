@@ -29,7 +29,7 @@ class DespesaViaturaInline(admin.TabularInline):
 
 @admin.register(Viatura)
 class ViaturaAdmin(AuditoriaAdminMixin, admin.ModelAdmin):
-    list_display = ("matricula", "marca", "modelo", "ano", "ativa")
+    list_display = ("matricula", "marca", "modelo", "ano", "responsavel", "ativa")
     list_filter = ("ativa", "marca")
     search_fields = ("matricula", "marca", "modelo")
     inlines = [SeguroViaturaInline, InspecaoInline, DespesaViaturaInline]
@@ -37,7 +37,7 @@ class ViaturaAdmin(AuditoriaAdminMixin, admin.ModelAdmin):
 
 @admin.register(SeguroViatura)
 class SeguroViaturaAdmin(AuditoriaAdminMixin, admin.ModelAdmin):
-    list_display = ("viatura", "seguradora", "apolice", "data_validade")
+    list_display = ("viatura", "seguradora", "apolice", "valor", "data_validade")
     list_filter = ("seguradora",)
     search_fields = ("viatura__matricula", "seguradora", "apolice")
     date_hierarchy = "data_validade"

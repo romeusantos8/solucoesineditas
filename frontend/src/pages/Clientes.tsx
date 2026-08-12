@@ -10,6 +10,16 @@ const campos: Campo[] = [
   { nome: "nif", etiqueta: "NIF (opcional)", vazioComoNull: true },
   { nome: "email", etiqueta: "Email (opcional)", tipo: "email" },
   { nome: "telefone", etiqueta: "Telefone (opcional)" },
+  {
+    nome: "ativo",
+    etiqueta: "Estado",
+    obrigatorio: true,
+    padrao: "true",
+    opcoes: [
+      { valor: "true", texto: "Ativo" },
+      { valor: "false", texto: "Inativo" },
+    ],
+  },
 ];
 
 const colunas: Coluna<Cliente>[] = [

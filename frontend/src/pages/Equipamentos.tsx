@@ -1,6 +1,7 @@
 // Lista e criação de equipamentos. Cada equipamento pode ter um funcionário
 // responsável (select carregado da API).
 
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useCrud } from "../api/useCrud";
 import { useOpcoes } from "../api/useOpcoes";
@@ -20,15 +21,32 @@ const colunas: Coluna<Equipamento>[] = [
 ];
 
 export default function Equipamentos() {
+  // Filtro por responsável (vazio = todos). Passa como ?responsavel=ID à API.
+  const [filtroResponsavel, setFiltroResponsavel] = useState<string>("");
+  const query = filtroResponsavel ? `?responsavel=${filtroResponsavel}` : "";
+
   const { itens, aCarregar, erro, criar, editar, apagar } =
-    useCrud<Equipamento>("/equipamentos/");
-  // Só funcionários ativos podem ser responsáveis.
+    useCrud<Equipamento>("/equipamentos/", query);
+  // Só funcionários ativos podem ser NOVOS responsáveis (no formulário).
   const funcionarios = useOpcoes<Funcionario>("/funcionarios/?ativo=true", (f) => f.nome);
+  // No filtro mostramos TODOS (incluindo inativos): um equipamento pode ter
+  // como responsável alguém que entretanto saiu, e queremos poder filtrá-lo.
+  const todosFuncionarios = useOpcoes<Funcionario>("/funcionarios/", (f) => f.nome);
 
   const campos: Campo[] = [
     { nome: "nome", etiqueta: "Nome", obrigatorio: true },
     { nome: "numero_serie", etiqueta: "Nº de série (opcional)", vazioComoNull: true },
     { nome: "responsavel", etiqueta: "Responsável (opcional)", opcoes: funcionarios },
+    {
+      nome: "ativo",
+      etiqueta: "Estado",
+      obrigatorio: true,
+      padrao: "true",
+      opcoes: [
+        { valor: "true", texto: "Ativo" },
+        { valor: "false", texto: "Inativo" },
+      ],
+    },
   ];
 
   async function confirmarApagar(e: Equipamento) {
@@ -44,7 +62,21 @@ export default function Equipamentos() {
     <section>
       <div className="acoes-header">
         <h1>Equipamentos</h1>
-        <ModalForm textoBotao="+ Novo equipamento" titulo="Novo equipamento" campos={campos} onCriar={criar} />
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+          <label className="filtro">
+            Responsável
+            <select
+              value={filtroResponsavel}
+              onChange={(e) => setFiltroResponsavel(e.target.value)}
+            >
+              <option value="">Todos</option>
+              {todosFuncionarios.map((f) => (
+                <option key={f.valor} value={f.valor}>{f.texto}</option>
+              ))}
+            </select>
+          </label>
+          <ModalForm textoBotao="+ Novo equipamento" titulo="Novo equipamento" campos={campos} onCriar={criar} />
+        </div>
       </div>
       {erro && <div className="alert-erro">{erro}</div>}
       <Dica>

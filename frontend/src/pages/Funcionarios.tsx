@@ -6,6 +6,11 @@ import type { Coluna } from "../components/DataTable";
 import type { Campo } from "../components/CrudForm";
 import type { Funcionario } from "../api/types";
 
+const OPCOES_ATIVO = [
+  { valor: "true", texto: "Ativo" },
+  { valor: "false", texto: "Inativo" },
+];
+
 const campos: Campo[] = [
   { nome: "nome", etiqueta: "Nome", obrigatorio: true },
   { nome: "funcao", etiqueta: "Função", obrigatorio: true },
@@ -13,6 +18,9 @@ const campos: Campo[] = [
   { nome: "nif", etiqueta: "NIF (opcional)", vazioComoNull: true },
   { nome: "email", etiqueta: "Email (opcional)", tipo: "email" },
   { nome: "telefone", etiqueta: "Telefone (opcional)" },
+  // Estado do funcionário (ex.: suspender/reativar). Obrigatório: sempre um dos
+  // dois valores, nunca vazio.
+  { nome: "ativo", etiqueta: "Estado", opcoes: OPCOES_ATIVO, obrigatorio: true, padrao: "true" },
 ];
 
 const colunas: Coluna<Funcionario>[] = [

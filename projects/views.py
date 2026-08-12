@@ -6,9 +6,10 @@ from rest_framework import viewsets
 
 from config.common import AuditoriaViewSetMixin
 
-from .models import AlocacaoFuncionario, Cliente, Obra
+from .models import AlocacaoFuncionario, AutoObra, Cliente, Obra
 from .serializers import (
     AlocacaoFuncionarioSerializer,
+    AutoObraSerializer,
     ClienteSerializer,
     ObraSerializer,
 )
@@ -40,3 +41,10 @@ class AlocacaoFuncionarioViewSet(AuditoriaViewSetMixin, viewsets.ModelViewSet):
     ).all()
     serializer_class = AlocacaoFuncionarioSerializer
     filterset_fields = ["obra", "funcionario"]
+
+
+class AutoObraViewSet(AuditoriaViewSetMixin, viewsets.ModelViewSet):
+    queryset = AutoObra.objects.select_related("obra").all()
+    serializer_class = AutoObraSerializer
+    # ?obra=ID (autos de uma obra), ?estado=, ?ano=
+    filterset_fields = ["obra", "estado", "ano"]

@@ -11,7 +11,7 @@ from rest_framework import serializers
 
 from config.common import AUDITORIA_FIELDS, ModelCleanSerializerMixin
 
-from .models import AlocacaoFuncionario, Cliente, Obra
+from .models import AlocacaoFuncionario, AutoObra, Cliente, Obra
 
 
 class ClienteSerializer(ModelCleanSerializerMixin, serializers.ModelSerializer):
@@ -37,6 +37,21 @@ class AlocacaoFuncionarioSerializer(
         fields = [
             "id", "obra", "funcionario", "funcionario_nome",
             "data_inicio", "data_fim", *AUDITORIA_FIELDS,
+        ]
+        read_only_fields = [*AUDITORIA_FIELDS]
+
+
+class AutoObraSerializer(ModelCleanSerializerMixin, serializers.ModelSerializer):
+    # Rótulo legível do estado (ex.: "Por faturar"), para a UI o mostrar direto.
+    estado_display = serializers.CharField(
+        source="get_estado_display", read_only=True
+    )
+
+    class Meta:
+        model = AutoObra
+        fields = [
+            "id", "obra", "ano", "mes", "valor", "descricao",
+            "estado", "estado_display", *AUDITORIA_FIELDS,
         ]
         read_only_fields = [*AUDITORIA_FIELDS]
 

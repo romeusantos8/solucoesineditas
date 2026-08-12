@@ -39,6 +39,17 @@ class Viatura(RegistoComAuditoria):
     )
     # `ativa=False` = viatura abatida/vendida, mantida só para histórico.
     ativa = models.BooleanField("Ativa", default=True)
+    # Funcionário responsável pela viatura (opcional). Mesmo padrão do
+    # Equipamento.responsavel: SET_NULL para desatribuir sem apagar a viatura, e
+    # string na FK para evitar import circular entre apps.
+    responsavel = models.ForeignKey(
+        "employees.Funcionario",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="viaturas",
+        verbose_name="Responsável",
+    )
     # criado_em/atualizado_em e criado_por/atualizado_por vêm de RegistoComAuditoria.
 
     class Meta:
@@ -74,6 +85,16 @@ class SeguroViatura(RegistoComValidade, RegistoComAuditoria):
     seguradora = models.CharField("Seguradora", max_length=80)
     apolice = models.CharField("Nº de apólice", max_length=60)
     data_inicio = models.DateField("Data de início")
+    # Valor/prémio da apólice (opcional). Opcional para os seguros já existentes
+    # não ficarem inválidos; quando preenchido, tem de ser positivo.
+    valor = models.DecimalField(
+        "Valor (€)",
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
 
     class Meta:
         verbose_name = "Seguro de viatura"

@@ -24,9 +24,10 @@ from .serializers import (
 
 @extend_schema(tags=["Frota"])
 class ViaturaViewSet(AuditoriaViewSetMixin, viewsets.ModelViewSet):
-    queryset = Viatura.objects.all()
+    # select_related evita uma query extra por linha ao aceder ao responsável.
+    queryset = Viatura.objects.select_related("responsavel").all()
     serializer_class = ViaturaSerializer
-    filterset_fields = ["ativa", "marca"]
+    filterset_fields = ["ativa", "marca", "responsavel"]  # ?responsavel=ID
 
 
 @extend_schema(tags=["Frota"])

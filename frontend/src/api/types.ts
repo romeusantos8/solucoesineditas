@@ -23,6 +23,8 @@ export interface Viatura extends Auditoria {
   modelo: string;
   ano: number | null;
   ativa: boolean;
+  responsavel: number | null;
+  responsavel_nome: string | null;
   criado_em: string;
   atualizado_em: string;
 }
@@ -34,6 +36,7 @@ export interface SeguroViatura extends Auditoria {
   apolice: string;
   data_inicio: string;
   data_validade: string;
+  valor: string | null;
   dias_para_expirar: number;
 }
 
@@ -120,6 +123,20 @@ export interface AlocacaoFuncionario extends Auditoria {
   data_fim: string | null;
 }
 
+export type EstadoAuto = "por_faturar" | "faturado";
+
+// Auto mensal de faturação de uma obra.
+export interface AutoObra extends Auditoria {
+  id: number;
+  obra: number;
+  ano: number;
+  mes: number; // 1-12
+  valor: string;
+  descricao: string;
+  estado: EstadoAuto;
+  estado_display: string;
+}
+
 // Equipamento derivado numa obra (vem do funcionário responsável, só leitura).
 export interface EquipamentoDerivado {
   id: number;
@@ -178,6 +195,39 @@ export interface RelatorioDespesas {
   meses: TotalMensal[];
   mes?: number;
   detalhe?: DespesaDetalhe[];
+}
+
+// Relatório de faturação de uma obra (total + lista de autos).
+export interface AutoRelatorio {
+  id: number;
+  ano: number;
+  mes: number;
+  valor: string;
+  descricao: string;
+  estado: EstadoAuto;
+  estado_display: string;
+}
+export interface RelatorioFaturacaoObra {
+  obra: number;
+  obra_nome: string;
+  total: string;
+  total_faturado: string;
+  total_por_faturar: string;
+  autos: AutoRelatorio[];
+}
+
+// Relatório dos equipamentos à responsabilidade de um funcionário.
+export interface EquipamentoDoFuncionario {
+  id: number;
+  nome: string;
+  numero_serie: string | null;
+  ativo: boolean;
+}
+export interface RelatorioEquipamentosFuncionario {
+  funcionario: number;
+  funcionario_nome: string;
+  total: number;
+  equipamentos: EquipamentoDoFuncionario[];
 }
 
 // Item do dashboard de alertas (/api/alerts/). Forma unificada das fontes.

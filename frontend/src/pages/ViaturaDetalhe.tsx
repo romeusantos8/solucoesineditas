@@ -36,6 +36,7 @@ export default function ViaturaDetalhe() {
     { nome: "apolice", etiqueta: "Nº apólice", obrigatorio: true },
     { nome: "data_inicio", etiqueta: "Início", tipo: "date", obrigatorio: true },
     { nome: "data_validade", etiqueta: "Validade", tipo: "date", obrigatorio: true },
+    { nome: "valor", etiqueta: "Valor (€) (opcional)", tipo: "number" },
   ];
   const camposInspecao: Campo[] = [
     { nome: "data_inspecao", etiqueta: "Data inspeção", tipo: "date", obrigatorio: true },
@@ -59,6 +60,7 @@ export default function ViaturaDetalhe() {
     { cabecalho: "Seguradora", render: (s) => s.seguradora },
     { cabecalho: "Apólice", render: (s) => s.apolice },
     { cabecalho: "Validade", render: (s) => s.data_validade },
+    { cabecalho: "Valor (€)", render: (s) => (s.valor != null ? s.valor : "—") },
     { cabecalho: "Dias", render: (s) => s.dias_para_expirar },
   ];
   const colInspecao: Coluna<Inspecao>[] = [

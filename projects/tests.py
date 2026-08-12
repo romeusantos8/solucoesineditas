@@ -193,3 +193,47 @@ class AlocacaoTests(APITestCase):
         })
         resp = self.client.get(f"/api/alocacoes-funcionarios/?obra={self.obra.id}")
         self.assertEqual(resp.json()["count"], 1)
+
+
+class AutoObraApiTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="u", password="segredo123")
+        self.client.force_authenticate(self.user)
+        self.cliente = Cliente.objects.create(nome="Acme")
+        self.obra = Obra.objects.create(
+            cliente=self.cliente, nome="Obra 1", data_inicio=date(2026, 1, 1)
+        )
+
+    def test_criar_auto(self):
+        resp = self.client.post("/api/autos-obras/", {
+            "obra": self.obra.id, "ano": 2026, "mes": 3, "valor": "1500.00",
+        })
+        self.assertEqual(resp.status_code, 201)
+        # Estado default = por faturar.
+        self.assertEqual(resp.json()["estado"], "por_faturar")
+
+    def test_mes_invalido_rejeitado(self):
+        resp = self.client.post("/api/autos-obras/", {
+            "obra": self.obra.id, "ano": 2026, "mes": 13, "valor": "100.00",
+        })
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("mes", resp.json())
+
+    def test_valor_zero_rejeitado(self):
+        resp = self.client.post("/api/autos-obras/", {
+            "obra": self.obra.id, "ano": 2026, "mes": 1, "valor": "0.00",
+        })
+        self.assertEqual(resp.status_code, 400)
+
+    def test_nao_duplica_auto_do_mesmo_mes(self):
+        dados = {"obra": self.obra.id, "ano": 2026, "mes": 5, "valor": "200.00"}
+        self.assertEqual(self.client.post("/api/autos-obras/", dados).status_code, 201)
+        # Segundo auto para o mesmo mês/ano/obra colide (unique_together).
+        self.assertEqual(self.client.post("/api/autos-obras/", dados).status_code, 400)
+
+    def test_filtra_autos_por_obra(self):
+        self.client.post("/api/autos-obras/", {
+            "obra": self.obra.id, "ano": 2026, "mes": 6, "valor": "300.00",
+        })
+        resp = self.client.get(f"/api/autos-obras/?obra={self.obra.id}")
+        self.assertEqual(resp.json()["count"], 1)

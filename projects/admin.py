@@ -10,11 +10,16 @@ from django.contrib import admin
 
 from config.common import AuditoriaAdminMixin
 
-from .models import AlocacaoFuncionario, Cliente, Obra
+from .models import AlocacaoFuncionario, AutoObra, Cliente, Obra
 
 
 class AlocacaoFuncionarioInline(admin.TabularInline):
     model = AlocacaoFuncionario
+    extra = 0
+
+
+class AutoObraInline(admin.TabularInline):
+    model = AutoObra
     extra = 0
 
 
@@ -31,10 +36,17 @@ class ObraAdmin(AuditoriaAdminMixin, admin.ModelAdmin):
     list_filter = ("estado",)
     search_fields = ("nome", "cliente__nome")
     date_hierarchy = "data_inicio"
-    inlines = [AlocacaoFuncionarioInline]
+    inlines = [AlocacaoFuncionarioInline, AutoObraInline]
 
 
 @admin.register(AlocacaoFuncionario)
 class AlocacaoFuncionarioAdmin(AuditoriaAdminMixin, admin.ModelAdmin):
     list_display = ("funcionario", "obra", "data_inicio", "data_fim")
     search_fields = ("funcionario__nome", "obra__nome")
+
+
+@admin.register(AutoObra)
+class AutoObraAdmin(AuditoriaAdminMixin, admin.ModelAdmin):
+    list_display = ("obra", "ano", "mes", "valor", "estado")
+    list_filter = ("estado", "ano")
+    search_fields = ("obra__nome", "descricao")
