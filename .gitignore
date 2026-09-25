@@ -18,6 +18,13 @@ __pycache__/
 *.sqlite3
 db.sqlite3
 
+# Backups da BD (pg_dump) — têm dados reais do cliente, incluindo de saúde.
+# Guardam-se FORA do projeto; isto é só uma rede de segurança.
+*.dump
+*.sql
+*.backup
+*.7z
+
 # Ficheiros estáticos recolhidos para produção
 /staticfiles/
 /static/

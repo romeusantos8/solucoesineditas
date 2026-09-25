@@ -27,22 +27,22 @@ fica registado no fim, em
 - [x] **0.1** Dependências com vulnerabilidades conhecidas — *alta, pequeno* (falta só ativar o Dependabot no GitHub)
 - [x] **0.2** Documentação da API aberta a qualquer pessoa (confirmado) — *média, pequeno*
 - [x] **1.1** Erros 500 não aparecem nos logs do Railway — *alta, pequeno*
-- [ ] **2.1** Matrícula repetida em minúsculas dá 500 (confirmado) — *média, pequeno*
-- [ ] **2.2** Alertas mostram prazos já renovados e recursos inativos (confirmado) — *alta, médio*
-- [ ] **2.3** Listas e selects do frontend cortam aos 50 registos — *alta, médio*
-- [ ] **2.4** KPIs dos alertas misturam o total geral com contagens da página — *baixa, pequeno*
-- [ ] **2.5** Parâmetros com números absurdos dão 500 (confirmado) — *média, pequeno*
-- [ ] **3.1** Chave de cifragem errada pode apagar dados médicos — *alta, pequeno*
-- [ ] **3.2** Login sem limite de tentativas, nos 3 pontos de entrada — *alta, médio*
-- [ ] **3.3** Qualquer utilizador staff lê fichas médicas pela API — *média, pequeno*
-- [ ] **3.4** Falta o header Content-Security-Policy — *média, médio*
+- [x] **2.1** Matrícula repetida em minúsculas dá 500 (confirmado) — *média, pequeno*
+- [x] **2.2** Alertas mostram prazos já renovados e recursos inativos (confirmado) — *alta, médio*
+- [ ] **2.3** Listas e selects do frontend cortam aos 50 registos — *alta, médio* — **adiado** (ver o item)
+- [ ] **2.4** KPIs dos alertas misturam o total geral com contagens da página — *baixa, pequeno* — **adiado** (ver o item)
+- [x] **2.5** Parâmetros com números absurdos dão 500 (confirmado) — *média, pequeno*
+- [ ] **3.1** Chave de cifragem errada pode apagar dados médicos — *alta, pequeno* — **adiado** (ver o item)
+- [x] **3.2** Login sem limite de tentativas, nos 3 pontos de entrada — *alta, médio*
+- [ ] **3.3** Qualquer utilizador staff lê fichas médicas pela API — *média, pequeno* — **adiado** (ver o item)
+- [x] **3.4** Falta o header Content-Security-Policy — *média, médio* (em modo "só avisar"; falta passar a bloquear, ver o item)
 - [ ] **3.5** Sessão do Admin dura 14 dias — *baixa, pequeno*
-- [ ] **3.6** Backups da BD guardados em claro — *média, pequeno*
+- [ ] **3.6** Backups da BD guardados em claro — *média, pequeno* (procedimento escrito no `DEPLOY.md`; falta aplicá-lo)
 - [ ] **4.1** Datas calculadas em UTC em vez da hora de Lisboa — *baixa, pequeno*
 - [ ] **4.2** Python 3.13 em produção vs 3.14 local; `nixpacks.toml` sem uso — *baixa, pequeno*
 - [ ] **4.3** Gunicorn com 1 processo; ligações à BD sem verificação — *baixa, pequeno*
 - [ ] **4.4** Rever a configuração de produção no Railway — *média, pequeno*
-- [ ] **5.1–5.4** Consistência e documentação — *baixa, pequeno*
+- [ ] **5.1–5.4** Consistência e documentação — *baixa, pequeno* (5.1 e 5.4 feitos; 5.2 e 5.3 dispensáveis)
 - [ ] **D1–D5** Decisões pendentes (precisam de resposta antes de mexer)
 
 ## Ordem e dependências
@@ -194,6 +194,14 @@ unicidade depois do `clean()`.
 **Verificar.** Teste: criar `AA-00-BB`, enviar `aa-00-bb` → 400 com o erro no campo
 `matricula`.
 
+**Feito (25/09/2026).** Dois testes em `fleet/tests.py` (`ValidacaoApiTests`):
+criação em formato formulário e edição em JSON, o formato do frontend. Ambos
+rebentavam com `IntegrityError` com o código antigo. A resposta passa a ser 400
+com "Viatura com este Matrícula já existe.". Esta frase é a mensagem por defeito
+do Django; corrigi-la ("Já existe uma viatura com esta matrícula.") exige
+`error_messages` no campo do model, o que gera uma migração, embora sem alterações
+na BD.
+
 ### 2.2 Alertas mostram prazos já renovados e recursos inativos (confirmado)
 
 **Problema.** Quando se regista o seguro novo de uma viatura, o antigo continua no
@@ -242,6 +250,13 @@ devolver uma lista vazia.
 
 Ver também as decisões D3 e D5.
 
+**Feito (25/09/2026).** Função `_nao_renovados()` em `alerts/views.py`, aplicada
+às três fontes que podem ter renovações; as fichas só levam o filtro de ativo.
+Sete testes novos em `alerts/tests.py` (`AlertasSoPendentesTests`), que falham
+todos com o código antigo. O `setUp` de `AlertasTests` passou o seguro "expirado
+há 200 dias" para outra viatura. Na mesma viatura, o seguro de -5 dias contava
+como renovação dele, e o teste do fundo da janela deixava de provar o que devia.
+
 ### 2.3 Listas e selects do frontend cortam aos 50 registos
 
 **Problema.** A API devolve 50 registos por página, mas o frontend só pede a
@@ -278,6 +293,13 @@ primeira página e não tem controlos de paginação. A partir do 51.º registo:
 `page_size` acima do máximo é limitado a 1000. No browser, com mais de 50
 registos na BD local: a lista mostra "Seguinte" e o select mostra todas as opções.
 
+**Adiado (25/09/2026).** A empresa não vai ter mais de 50 viaturas, equipamentos,
+funcionários, clientes ou obras. Retomar quando **qualquer lista** passar dos 50,
+e não só as principais. As que mais depressa lá chegam são as despesas de uma
+viatura ou de um funcionário (ex.: uma despesa de combustível por semana dá 50
+num ano). Quando isso acontecer, as despesas mais antigas deixam de aparecer na
+página de detalhe, sem aviso.
+
 ### 2.4 KPIs dos alertas misturam o total geral com contagens da página
 
 **Problema.** No dashboard, o KPI "Total" conta os alertas de todas as páginas,
@@ -296,6 +318,10 @@ caber numa página.
 
 **Verificar.** Teste com mais de 50 alertas: `resumo.criticos` conta-os todos, não
 só os da página.
+
+**Adiado (25/09/2026).** O problema só aparece com mais de 50 alertas ao mesmo
+tempo, o que é improvável com esta dimensão, sobretudo depois do 2.2. Retomar
+junto com o 2.3.
 
 ### 2.5 Parâmetros com números absurdos dão 500 (confirmado)
 
@@ -320,6 +346,14 @@ só os da página.
 `reports/tests.py`.
 
 **Verificar.** Testes: os três pedidos acima respondem 400.
+
+**Feito (25/09/2026).** Antes de corrigir, testei valores extremos (números
+gigantes, negativos, zero) em todos os endpoints. Apareceram 8 pedidos com 500,
+todos nestes dois sítios; no relatório, também `ano=0` e anos negativos. Tudo o
+resto já respondia 400 ou 404. Constantes `JANELA_MAXIMA` em `alerts/views.py` e
+`ANO_MINIMO`/`ANO_MAXIMO` em `reports/views.py`. Testes novos em `alerts/tests.py`
+e `reports/tests.py`, que falham com o código antigo. Os 8 pedidos respondem agora
+400. O frontend nunca pede valores fora destes limites.
 
 ---
 
@@ -351,6 +385,14 @@ para sempre.
 **Verificar.** Teste: criar uma ficha com uma chave, trocar a chave com
 `mock.patch.dict(os.environ, ...)` e ler → erro. Confirmar que o valor na BD não
 mudou e que os alertas continuam a responder com a chave errada.
+
+**Adiado (25/09/2026), por decisão do utilizador.** A chave de produção está
+guardada no gestor de passwords, o que cobre o pior caso: perder a chave e ficar
+com todas as fichas ilegíveis. **Risco que fica:** se a chave no Railway ficar
+errada durante algum tempo, as fichas editadas nesse intervalo (no Admin) perdem
+o médico e as observações para sempre, e repor a chave certa não as recupera.
+Regra entretanto: a `FIELD_ENCRYPTION_KEY` nunca se gera de novo para produção,
+só se copia do gestor de passwords.
 
 ### 3.2 Login sem limite de tentativas, nos 3 pontos de entrada
 
@@ -404,6 +446,35 @@ ver o IP real atrás do proxy). Limitações deste plano B:
 mesmo com a password certa, e outro utilizador continua a conseguir entrar. Repetir
 o mesmo teste à mão no `/admin/login/`.
 
+**Feito (25/09/2026)** com o `django-axes` 8.3.1, que declara suporte ao
+Django 6.0. O plano B não foi preciso.
+- **Configuração** (secção `AXES_*` em `settings.py`): 5 falhas → 15 minutos de
+  bloqueio do par utilizador + IP; um login certo limpa as falhas; os logins
+  bem-sucedidos não são guardados; mensagem em português (o axes não traz
+  tradução).
+- **IP real:** `ip_do_cliente()` em `config/common.py` usa o último valor do
+  `X-Forwarded-For`, que é o que o proxy do Railway acrescenta. O que vem à
+  esquerda pode ser forjado pelo cliente, e está testado que forjá-lo não
+  contorna o bloqueio.
+- **Login da app (JWT):** o bloqueio funcionava, mas a resposta era o 401 genérico
+  ("credenciais inválidas"), porque no DRF o `AxesMiddleware` não vê a marca de
+  bloqueio. O `LoginView` passou a devolver ele próprio o 429 com a mensagem, e o
+  `Login.tsx` mostra-a.
+- **`/api-auth/`** só existe com `DEBUG=True`.
+- **Testes:** 6 novos em `config/tests.py` (`LimiteTentativasLoginTests`), que
+  falham todos com as configurações antigas.
+- **Migrações:** 10, todas do próprio axes. Criam as tabelas dele e não tocam em
+  nenhuma tabela da app; a única com código Python só limpa duplicados na tabela
+  de tentativas do axes, que numa instalação nova está vazia. Já aplicadas na BD
+  local.
+- **Antes do push:** `pg_dump` de produção, pela regra do topo. As migrações correm
+  sozinhas no deploy.
+- **Depois do deploy:** falhar um login de propósito e ver no Admin → Axes →
+  "Access attempts" se o IP registado é o teu IP público. Se for um IP interno
+  (ex.: `10.x`, `100.x`), o Railway tem mais de um proxy e o `ip_do_cliente()`
+  tem de ser ajustado. O bloqueio continua a funcionar nesse caso, mas passa a
+  ser só por utilizador.
+
 ### 3.3 Qualquer utilizador staff lê fichas médicas pela API
 
 **Problema.** A API das fichas médicas usa `IsAdminUser`, que só exige
@@ -426,6 +497,11 @@ no `FichaMedicaViewSet` em vez de `IsAdminUser`.
 **Verificar.** Testes: staff sem permissão → 403; com `view_fichamedica` → GET 200 e
 POST 403; superutilizador → tudo permitido. O `FichaMedicaSeccao.tsx` já se esconde
 quando recebe 403, por isso não precisa de mudar.
+
+**Adiado (25/09/2026), por decisão do utilizador.** Retomar **antes** de dar a
+opção "staff" (acesso ao Admin) a mais alguém além do superutilizador. Até lá,
+essa opção dá acesso de leitura a todas as fichas médicas pela API. A decisão D5
+dependia deste item; sem ele, a alternativa é usar o `is_staff`.
 
 ### 3.4 Falta o header Content-Security-Policy
 
@@ -457,6 +533,30 @@ levava-os.
 `Content-Security-Policy-Report-Only` (e, depois da troca,
 `Content-Security-Policy`). No browser: nenhum aviso de CSP na consola.
 
+**Feito (25/09/2026), em modo "só avisar".** Antes de escrever a política,
+analisei o que cada página carrega:
+- **React compilado:** nada embutido e sem `eval`.
+- **Admin:** sem scripts embutidos; só um bloco `<style>` numa página.
+- **Swagger:** um `<style>` embutido. O `new Function` do bundle está num fallback
+  que os browsers modernos nunca executam.
+
+Decisões e alterações:
+- **Estilos:** `style-src` permite estilos embutidos, por causa do Admin e do
+  Swagger. A regra que protege contra XSS (`script-src 'self'`) fica estrita.
+- **Swagger:** passou para `SpectacularSwaggerSplitView` (script de arranque à
+  parte) e os ficheiros vêm do `drf-spectacular-sidecar` (sem CDN).
+- **Relatórios de violação:** em vez de exigir que alguém abra a consola do
+  browser, os browsers enviam cada violação para `/api/csp-report/`, que a
+  escreve nos logs do Railway como "Violação CSP". Endpoint público e sem CSRF,
+  como os browsers exigem; só regista campos curtos.
+- **Testes:** 4 novos em `config/tests.py` (`CspTests`), que falham com a
+  configuração antiga.
+
+**Falta:** depois do deploy, deixar a app ser usada uns dias e procurar "Violação
+CSP" nos logs. Sem avisos, trocar `SECURE_CSP_REPORT_ONLY` por `SECURE_CSP` no
+`settings.py`, e a CSP passa a bloquear. Com avisos, ajustar a `POLITICA_CSP`
+primeiro.
+
 ### 3.5 Sessão do Admin dura 14 dias
 
 **Problema.** O cookie de sessão do Admin vale 14 dias, o valor por defeito do
@@ -486,6 +586,11 @@ ficheiro, lê tudo.
 - documentar o procedimento de backup no `DEPLOY.md`, que hoje não o descreve.
 
 **Ficheiros.** `DEPLOY.md`.
+
+**Documentado (25/09/2026)** no `DEPLOY.md`, secção "Backup da base de dados": o
+túnel com `railway connect`, o `pg_dump`, a cifragem com 7-Zip, o ensaio de
+migrações numa BD local e a reposição em produção. **Falta aplicar:** cifrar os
+backups que já existem no PC e apagar as cópias em claro.
 
 ---
 
@@ -568,6 +673,11 @@ própria inspeção. Acrescentar a regra `data_validade > data_inspecao`, como j
 existe nos seguros, certificados e fichas. O serializer já tem o mixin, por isso a
 regra passa para a API sem mais nada. Teste em `fleet/tests.py`.
 
+**Feito (25/09/2026).** Regra no `Inspecao.clean()`. Dois testes em
+`fleet/tests.py`, no model e na API (datas iguais também são recusadas), que falham
+sem a regra. As inspeções já gravadas não são afetadas; só uma inspeção inválida
+que seja editada terá de ter as datas corrigidas.
+
 ### 5.2 Grupos no Swagger
 
 As views de `employees`, `projects`, `health_records` e `reports` não têm
@@ -599,6 +709,21 @@ removidos.
     `django-axes`, CSP).
 - **`DEPLOY.md`:** ver 3.6 e 4.2.
 
+**Feito (25/09/2026).**
+- **`readme.md`:** estado, funcionalidades (incluindo relatórios, autos, bloqueio
+  de login), modelo de dados, estrutura com todas as apps, instruções do frontend
+  e dos testes, secção de deploy e RGPD com as medidas que existem mesmo.
+- **`CLAUDE.md`:** apps `projects`, `health_records` e `reports`, endpoints
+  (removido `/api/alocacoes-equipamentos/`, acrescentados autos e relatórios),
+  validações, Swagger (as tags que existem de facto), CSP, deploy e `baseURL` do
+  frontend. As regras do 2.1, do 2.2 e do limite de tentativas já tinham entrado
+  nos respetivos itens.
+- **`DEPLOY.md`:** Railpack em vez de Nixpacks; `DATABASE_URL` como referência
+  manual (não é injetada sozinha); `migrate` no arranque (não no build); novas
+  secções "Atualizar a app" (backup antes de pushes com migrações) e "Backup da
+  base de dados"; notas sobre logs, contas bloqueadas e avisos da CSP. Os ficheiros
+  `nixpacks.toml` e `Procfile` continuam no repositório (apagá-los é o item 4.2).
+
 ---
 
 ## Decisões pendentes
@@ -620,11 +745,11 @@ alguma vez estiveram alocados à obra, incluindo os que já saíram (`data_fim` 
 passado). Devem mostrar só os das alocações em curso (`data_fim` vazia ou igual ou
 posterior a hoje)? Não precisa de migração.
 
-### D3 — Alertas de recursos inativos
+### D3 — Alertas de recursos inativos ✅ decidido
 
-O item 2.2 propõe esconder os alertas de viaturas, equipamentos e funcionários
-inativos. Se for útil continuar a vê-los (por exemplo, para cancelar o seguro de
-uma viatura vendida), mantém-se o filtro de "renovado" e retira-se o de "ativo".
+**Decisão (25/09/2026): esconder.** No dashboard só aparecem os prazos a expirar
+que não foram renovados, de viaturas, equipamentos e funcionários ativos.
+Implementado no item 2.2.
 
 ### D4 — Cifrar a aptidão médica
 
