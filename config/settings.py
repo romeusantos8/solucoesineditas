@@ -245,6 +245,34 @@ if not DEBUG:
 
 
 # ---------------------------------------------------------------------------
+# Logs
+# ---------------------------------------------------------------------------
+# Por defeito, o Django só escreve os erros na consola com DEBUG=True. Em
+# produção mandava-os por email aos ADMINS (que não temos) e perdiam-se. Aqui os
+# logs vão sempre para a consola, que o Railway recolhe e mostra no painel.
+# Nunca registar o corpo dos pedidos: pode conter dados de saúde (RGPD).
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simples": {"format": "{levelname} {asctime} {name}: {message}", "style": "{"},
+    },
+    "handlers": {
+        "consola": {"class": "logging.StreamHandler", "formatter": "simples"},
+    },
+    "root": {"handlers": ["consola"], "level": "WARNING"},
+    "loggers": {
+        "django": {"handlers": ["consola"], "level": "INFO", "propagate": False},
+        # Pedidos recusados (4xx: login errado, dados inválidos) não são erros da
+        # app; aqui só interessam os 500. O runserver continua a mostrar cada
+        # pedido com o código de resposta.
+        "django.request": {"level": "ERROR"},
+    },
+}
+
+
+# ---------------------------------------------------------------------------
 # Django REST Framework
 # ---------------------------------------------------------------------------
 
@@ -291,6 +319,10 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     # Não serve o esquema cru na própria UI (a UI já o vai buscar à rota dedicada).
     "SERVE_INCLUDE_SCHEMA": False,
+    # Só staff vê o esquema e o Swagger (por defeito seriam públicos e dariam a
+    # qualquer pessoa, ou bot, o mapa completo da API). Para os abrir no browser,
+    # entra primeiro no Admin: a sessão do Admin serve de login.
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
     # Faz o botão "Authorize" do Swagger UI lembrar-se do token entre pedidos.
     "SWAGGER_UI_SETTINGS": {
         "persistAuthorization": True,

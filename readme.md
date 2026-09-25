@@ -28,6 +28,9 @@ prazos**. Os restantes módulos serão adicionados por fases.
 ### Planeado
 - Sistema de permissões por perfil (role) — o "gancho" já está no settings
 - Reforço RGPD das fichas médicas (cifragem dos campos sensíveis em base de dados)
+- Correções da revisão de código e da verificação de segurança de setembro de
+  2026 — ver
+  [PLANO_MELHORIAS.md](PLANO_MELHORIAS.md)
 
 ## Stack tecnológica
 

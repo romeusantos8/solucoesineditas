@@ -2,15 +2,18 @@
 #
 # Fixamos as versões "major" para o projeto ser reproduzível. Quando quiseres
 # atualizar, fá-lo de propósito e testa, em vez de apanhar surpresas.
+# Os mínimos (>=) marcam versões com correções de segurança: garantem que
+# nenhum build instala uma versão com vulnerabilidades conhecidas.
 
-Django==6.0.*                 # Framework web. 6.0 suporta oficialmente Python 3.14.
-djangorestframework==3.17.*   # DRF: transforma o Django numa API REST (3.17+ suporta Django 6.0).
+Django>=6.0.8,<6.1            # Framework web. 6.0 suporta oficialmente Python 3.14.
+sqlparse>=0.6.0               # Dependência do Django; mínimo por segurança.
+djangorestframework>=3.17.2,<3.18  # DRF: transforma o Django numa API REST (3.17+ suporta Django 6.0).
 django-filter==25.1           # Filtros de querystring para a API (ex.: ?viatura=ID).
 django-cors-headers==4.7.0    # Deixa o frontend React (outro porto) chamar a API.
 whitenoise==6.8.2             # Serve os ficheiros estáticos (Admin) em produção.
 drf-spectacular==0.28.0       # Documentação OpenAPI/Swagger auto-gerada da API.
 djangorestframework-simplejwt==5.5.1  # Autenticação JWT (access curto + refresh).
-cryptography==46.0.3          # Cifragem dos campos sensíveis das fichas médicas (RGPD).
+cryptography==50.0.*          # Cifragem dos campos sensíveis das fichas médicas (RGPD).
 
 # Driver de PostgreSQL. Usamos o psycopg 3 (não o antigo psycopg2) porque traz
 # binários pré-compilados ("wheels"), o que evita precisares de um compilador C

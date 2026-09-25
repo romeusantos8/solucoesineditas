@@ -31,7 +31,7 @@ npm run lint --prefix frontend                         # oxlint
 
 Desenvolvimento local precisa de **dois terminais** (backend em :8000, frontend em :5173).
 
-> Versões fixadas de propósito por causa do Python 3.14: **Django 6.0** (a primeira série a suportá-lo — não baixar abaixo de 6.0) e **DRF 3.17**. Postgres é instalado à parte (serviço `postgresql-x64-18`, BD `gestao_recursos`).
+> Versões fixadas de propósito por causa do Python 3.14: **Django 6.0** (a primeira série a suportá-lo — não baixar abaixo de 6.0) e **DRF 3.17**. Os mínimos (`>=`) no `requirements.txt` marcam correções de segurança — não os baixar. Postgres é instalado à parte (serviço `postgresql-x64-18`, BD `gestao_recursos`).
 
 ## Configuração
 
@@ -41,7 +41,7 @@ Desenvolvimento local precisa de **dois terminais** (backend em :8000, frontend 
 
 Projeto Django `config/` + apps de domínio. Convenção Django (MVT≈MVC): `models.py` = Model, `views.py` = Controller, e o "template" numa API é o JSON dos serializers.
 
-- **`config/`** — projeto Django (settings, urls raiz). Não é uma app instalada.
+- **`config/`** — projeto Django (settings, urls raiz). Não é uma app instalada. Os testes das configurações transversais (documentação da API, logs) vivem em `config/tests.py` (`manage.py test config`).
 - **`config/common.py`** — peças partilhadas entre apps. **Ler este ficheiro primeiro** ao mexer em models/serializers; contém os mecanismos transversais (ver abaixo).
 - **`accounts/`** — autenticação. `models.py` está vazio de propósito: usa-se o `User`/`Group` do Django. (Sem testes próprios; o fluxo JWT é testado em `fleet/tests.py`.)
 - **`fleet/`** — `Viatura` (entidade central) + `SeguroViatura`, `Inspecao`, `DespesaViatura`.
@@ -71,8 +71,8 @@ Todos os endpoints sob `/api/`, exigem autenticação (`IsAuthenticated` global)
 - CRUD: `/api/viaturas/`, `/api/seguros/`, `/api/inspecoes/`, `/api/despesas/`, `/api/equipamentos/`, `/api/certificados/`, `/api/funcionarios/`, `/api/despesas-funcionarios/`, `/api/clientes/`, `/api/obras/`, `/api/alocacoes-funcionarios/`, `/api/alocacoes-equipamentos/`, `/api/fichas-medicas/` (só staff).
 - Auth por **JWT** (`djangorestframework-simplejwt`): `POST /api/auth/token/` (username+password → `{access, refresh}`), `POST /api/auth/token/refresh/` (refresh → novo access). Enviar `Authorization: Bearer <access>`. Access curto (5 min) + refresh (1 dia), em `SIMPLE_JWT`.
 - **`/api/alerts/?dias=N&expirados_desde=M`** — não é um ViewSet, é uma `APIView` (paginada manualmente) que junta as 4 fontes de prazo numa lista plana ordenada (mais urgente primeiro). `dias` (default 60) = janela futura; `expirados_desde` (default 90) = fundo que corta o histórico antigo de expirados. Valores inválidos/negativos → 400.
-- **Swagger/OpenAPI** (`drf-spectacular`): UI em `/api/docs/`, esquema em `/api/schema/`. ViewSets agrupados por tags (Frota, Equipamentos, Funcionários, Clientes, Obras, Alertas, Autenticação) via `@extend_schema(tags=[...])`.
-- **Produção**: `whitenoise` serve os estáticos do Admin; settings de segurança (HSTS, cookies seguros, SSL redirect) ativam quando `DEBUG=False`.
+- **Swagger/OpenAPI** (`drf-spectacular`): UI em `/api/docs/`, esquema em `/api/schema/`. **Só staff** (`SERVE_PERMISSIONS`); no browser, entrar primeiro no Admin. ViewSets agrupados por tags (Frota, Equipamentos, Funcionários, Clientes, Obras, Alertas, Autenticação) via `@extend_schema(tags=[...])`.
+- **Produção**: `whitenoise` serve os estáticos do Admin; settings de segurança (HSTS, cookies seguros, SSL redirect) ativam quando `DEBUG=False`. `LOGGING` envia os erros (500) para a consola, que o Railway mostra; os 4xx não são registados. Nunca registar o corpo dos pedidos (dados de saúde).
 
 ### Frontend (`frontend/`)
 
