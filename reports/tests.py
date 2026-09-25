@@ -91,6 +91,15 @@ class DespesasMensaisTests(APITestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(dados_ano := resp.json()["ano"], date.today().year)
 
+    def test_ano_fora_dos_limites_da_400(self):
+        # Sem limites, um ano absurdo rebentava ao construir as datas (500).
+        for ano in ("0", "-1", "1999", "2101", "99999"):
+            resp = self.client.get(
+                f"{URL}?tipo=funcionario&entidade={self.func.id}&ano={ano}"
+            )
+            self.assertEqual(resp.status_code, 400, ano)
+            self.assertIn("ano", resp.json())
+
     def test_viaturas_tambem_funciona(self):
         v = Viatura.objects.create(matricula="00-AA-00", marca="VW", modelo="Caddy")
         DespesaViatura.objects.create(

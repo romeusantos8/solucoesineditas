@@ -6,11 +6,19 @@ os objetos do model em JSON na saída. As validações de negócio que falaste
 adicionar mais tarde vivem aqui (métodos validate_<campo> / validate).
 """
 
+from collections.abc import Mapping
+
 from rest_framework import serializers
 
 from config.common import AUDITORIA_FIELDS, ModelCleanSerializerMixin
 
-from .models import DespesaViatura, Inspecao, SeguroViatura, Viatura
+from .models import (
+    DespesaViatura,
+    Inspecao,
+    SeguroViatura,
+    Viatura,
+    normalizar_matricula,
+)
 
 
 class ViaturaSerializer(ModelCleanSerializerMixin, serializers.ModelSerializer):
@@ -37,6 +45,17 @@ class ViaturaSerializer(ModelCleanSerializerMixin, serializers.ModelSerializer):
         ]
         # Datas de auditoria são preenchidas automaticamente; nunca via API.
         read_only_fields = ["criado_em", "atualizado_em", *AUDITORIA_FIELDS]
+
+    def to_internal_value(self, data):
+        # Normaliza a matrícula ANTES da validação dos campos: é nessa fase que
+        # o UniqueValidator do DRF verifica duplicados, com o valor tal como
+        # chegou. Se a normalização ficasse só no clean() do model (que o mixin
+        # corre depois), "aa-00-bb" passava essa verificação e a gravação
+        # rebentava na constraint unique da BD (erro 500 em vez de 400).
+        if isinstance(data, Mapping) and isinstance(data.get("matricula"), str):
+            data = data.copy()  # o QueryDict de um pedido é imutável
+            data["matricula"] = normalizar_matricula(data["matricula"])
+        return super().to_internal_value(data)
 
 
 class SeguroViaturaSerializer(ModelCleanSerializerMixin, serializers.ModelSerializer):

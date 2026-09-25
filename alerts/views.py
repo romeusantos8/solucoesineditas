@@ -3,8 +3,14 @@ View da app de Alertas (MVC: o "Controller").
 
 GET /api/alerts/?dias=N&expirados_desde=M  → lista unificada de prazos a expirar
 (e expirados recentes), ordenada do mais urgente para o menos urgente. Junta
-seguros, inspeções e certificados. Esta app só LÊ as outras (regra do README):
-importa os models de fleet/equipment mas nunca os altera.
+seguros, inspeções, certificados e fichas médicas. Esta app só LÊ as outras
+(regra do README): importa os models mas nunca os altera.
+
+Só entram prazos que ainda precisam de atenção:
+- não renovados: um registo com sucessor (outro registo do mesmo recurso com
+  validade posterior) já foi tratado e sai do dashboard;
+- de recursos ativos: viaturas abatidas, equipamentos inativos e funcionários
+  que saíram não geram alertas.
 
 Parâmetros:
 - dias (default 60): janela futura — inclui o que expira até hoje+dias.
@@ -17,6 +23,7 @@ A resposta é paginada (como os restantes endpoints).
 
 from datetime import date, timedelta
 
+from django.db.models import Exists, OuterRef
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ValidationError
@@ -34,10 +41,13 @@ from .serializers import AlertaSerializer
 # quão atrás no passado ainda mostramos os já vencidos.
 DIAS_DEFAULT = 60
 EXPIRADOS_DESDE_DEFAULT = 90
+# Máximo das duas janelas (10 anos). Sem teto, um valor absurdo empurrava a data
+# para lá do ano 9999 e o pedido rebentava (erro 500 em vez de 400).
+JANELA_MAXIMA = 3650
 
 
 def _parse_inteiro_nao_negativo(request, nome, default):
-    """Lê e valida um parâmetro inteiro ≥ 0 da querystring."""
+    """Lê e valida um parâmetro inteiro entre 0 e JANELA_MAXIMA da querystring."""
     bruto = request.query_params.get(nome, default)
     try:
         valor = int(bruto)
@@ -45,7 +55,21 @@ def _parse_inteiro_nao_negativo(request, nome, default):
         raise ValidationError({nome: "Tem de ser um número inteiro."})
     if valor < 0:
         raise ValidationError({nome: "Tem de ser um número positivo."})
+    if valor > JANELA_MAXIMA:
+        raise ValidationError({nome: f"Não pode ser superior a {JANELA_MAXIMA}."})
     return valor
+
+
+def _nao_renovados(queryset, **mesmo_recurso):
+    """
+    Exclui os registos já renovados: os que têm, para o mesmo recurso, outro
+    registo com validade posterior. `mesmo_recurso` diz o que conta como "o
+    mesmo prazo" (ex.: viatura=OuterRef("viatura")).
+    """
+    sucessor = queryset.model.objects.filter(
+        data_validade__gt=OuterRef("data_validade"), **mesmo_recurso
+    )
+    return queryset.exclude(Exists(sucessor))
 
 
 def _alerta(registo, tipo, recurso, recurso_id):
@@ -66,12 +90,14 @@ def _alerta(registo, tipo, recurso, recurso_id):
     tags=["Alertas"],
     parameters=[
         OpenApiParameter(
-            "dias", OpenApiTypes.INT, description="Janela futura em dias (default 60)."
+            "dias",
+            OpenApiTypes.INT,
+            description="Janela futura em dias (0–3650, default 60).",
         ),
         OpenApiParameter(
             "expirados_desde",
             OpenApiTypes.INT,
-            description="Quantos dias atrás ainda mostrar expirados (default 90).",
+            description="Quantos dias atrás ainda mostrar expirados (0–3650, default 90).",
         ),
     ],
     responses=AlertaSerializer(many=True),
@@ -94,29 +120,44 @@ class AlertasView(APIView):
         teto = hoje + timedelta(days=dias)
 
         alertas = []
+        na_janela = {"data_validade__range": (piso, teto)}
 
-        seguros = SeguroViatura.objects.select_related("viatura").filter(
-            data_validade__range=(piso, teto)
+        seguros = _nao_renovados(
+            SeguroViatura.objects.select_related("viatura").filter(
+                viatura__ativa=True, **na_janela
+            ),
+            viatura=OuterRef("viatura"),
         )
         for s in seguros:
             alertas.append(_alerta(s, "seguro", "viatura", s.viatura_id))
 
-        inspecoes = Inspecao.objects.select_related("viatura").filter(
-            data_validade__range=(piso, teto)
+        inspecoes = _nao_renovados(
+            Inspecao.objects.select_related("viatura").filter(
+                viatura__ativa=True, **na_janela
+            ),
+            viatura=OuterRef("viatura"),
         )
         for i in inspecoes:
             alertas.append(_alerta(i, "inspecao", "viatura", i.viatura_id))
 
-        certificados = Certificado.objects.select_related("equipamento").filter(
-            data_validade__range=(piso, teto)
+        # Um equipamento pode ter vários tipos de certificado: só um do mesmo
+        # tipo o renova. O tipo é texto livre, por isso compara sem maiúsculas.
+        certificados = _nao_renovados(
+            Certificado.objects.select_related("equipamento").filter(
+                equipamento__ativo=True, **na_janela
+            ),
+            equipamento=OuterRef("equipamento"),
+            tipo__iexact=OuterRef("tipo"),
         )
         for c in certificados:
             alertas.append(_alerta(c, "certificado", "equipamento", c.equipamento_id))
 
         # Fichas médicas: a descrição (do __str__) só identifica o funcionário,
         # não revela dados clínicos — adequado para um alerta de prazo aqui.
+        # São OneToOne (uma por funcionário), por isso não há renovações a
+        # excluir: renovar é editar a ficha (Admin) ou substituí-la (app).
         fichas = FichaMedica.objects.select_related("funcionario").filter(
-            data_validade__range=(piso, teto)
+            funcionario__ativo=True, **na_janela
         )
         for f in fichas:
             alertas.append(_alerta(f, "ficha_medica", "funcionario", f.funcionario_id))

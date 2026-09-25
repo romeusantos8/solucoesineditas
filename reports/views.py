@@ -7,7 +7,7 @@ nunca os altera. Não tem models nem migrações próprias.
 GET /api/reports/despesas-mensais/?tipo=&entidade=&ano=&mes=
   - tipo:     "funcionario" | "viatura" (obrigatório)
   - entidade: id do funcionário/viatura (obrigatório)
-  - ano:      YYYY (default: ano atual)
+  - ano:      YYYY, entre 2000 e 2100 (default: ano atual)
   - mes:      1-12 (opcional) — se presente, junta o detalhe (lista) desse mês
 Devolve os 12 totais mensais do ano; com `mes`, também as despesas desse mês.
 """
@@ -31,6 +31,12 @@ _FONTES = {
     "funcionario": {"model": DespesaFuncionario, "fk": "funcionario_id"},
     "viatura": {"model": DespesaViatura, "fk": "viatura_id"},
 }
+
+# Anos aceites nos relatórios (o mínimo é o mesmo dos autos de obra). Sem
+# limites, um ano absurdo (0, 99999) rebentava ao construir as datas do filtro
+# (erro 500 em vez de 400).
+ANO_MINIMO = 2000
+ANO_MAXIMO = 2100
 
 
 def _inteiro(request, nome, default=None):
@@ -56,6 +62,10 @@ class DespesasMensaisView(APIView):
             )
         entidade = _inteiro(request, "entidade")
         ano = _inteiro(request, "ano", default=date.today().year)
+        if not ANO_MINIMO <= ano <= ANO_MAXIMO:
+            raise ValidationError(
+                {"ano": f"Tem de estar entre {ANO_MINIMO} e {ANO_MAXIMO}."}
+            )
 
         fonte = _FONTES[tipo]
         base = fonte["model"].objects.filter(

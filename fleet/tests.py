@@ -14,7 +14,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 from rest_framework.test import APITestCase
 
-from .models import DespesaViatura, SeguroViatura, Viatura
+from .models import DespesaViatura, Inspecao, SeguroViatura, Viatura
 
 User = get_user_model()
 
@@ -144,6 +144,15 @@ class ValidacaoModelTests(TestCase):
         with self.assertRaises(ValidationError):
             s.full_clean()
 
+    def test_inspecao_validade_antes_da_inspecao_rejeitada(self):
+        v = Viatura.objects.create(matricula="55-FF-55", marca="X", modelo="Y")
+        i = Inspecao(
+            viatura=v, data_inspecao=date.today(),
+            data_validade=date.today() - timedelta(days=1),
+        )
+        with self.assertRaises(ValidationError):
+            i.full_clean()
+
     def test_despesa_valor_zero_rejeitado(self):
         v = Viatura.objects.create(matricula="44-FF-44", marca="X", modelo="Y")
         d = DespesaViatura(viatura=v, descricao="X", valor=Decimal("0.00"), data=date.today())
@@ -206,12 +215,43 @@ class ValidacaoApiTests(APITestCase):
         self.assertEqual(resp.status_code, 201)
         self.assertEqual(resp.json()["matricula"], "ZZ-99-ZZ")
 
+    def test_api_rejeita_matricula_repetida_em_minusculas(self):
+        # A normalização tem de acontecer antes da verificação de duplicados;
+        # senão "aa-00-bb" passava essa verificação e rebentava na BD (500).
+        Viatura.objects.create(matricula="AA-00-BB", marca="X", modelo="Y")
+        resp = self.client.post(
+            "/api/viaturas/",
+            {"matricula": "aa-00-bb", "marca": "X", "modelo": "Y"},
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("matricula", resp.json())
+
+    def test_api_rejeita_editar_para_matricula_repetida(self):
+        # Mesmo caso na edição, e em JSON (o formato que o frontend envia).
+        Viatura.objects.create(matricula="AA-00-BB", marca="X", modelo="Y")
+        outra = Viatura.objects.create(matricula="CC-11-DD", marca="X", modelo="Y")
+        resp = self.client.patch(
+            f"/api/viaturas/{outra.id}/", {"matricula": "aa-00-bb"}, format="json"
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("matricula", resp.json())
+
     def test_api_rejeita_seguro_com_validade_anterior(self):
         v = Viatura.objects.create(matricula="66-HH-66", marca="X", modelo="Y")
         resp = self.client.post("/api/seguros/", {
             "viatura": v.id, "seguradora": "S", "apolice": "1",
             "data_inicio": date.today().isoformat(),
             "data_validade": (date.today() - timedelta(days=1)).isoformat(),
+        })
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("data_validade", resp.json())
+
+    def test_api_rejeita_inspecao_com_validade_anterior(self):
+        v = Viatura.objects.create(matricula="67-HH-67", marca="X", modelo="Y")
+        resp = self.client.post("/api/inspecoes/", {
+            "viatura": v.id,
+            "data_inspecao": date.today().isoformat(),
+            "data_validade": date.today().isoformat(),  # igual também não serve
         })
         self.assertEqual(resp.status_code, 400)
         self.assertIn("data_validade", resp.json())

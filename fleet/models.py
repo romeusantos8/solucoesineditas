@@ -25,6 +25,15 @@ def _ano_maximo():
     return date.today().year + 1
 
 
+def normalizar_matricula(matricula: str) -> str:
+    """
+    Forma canónica da matrícula: maiúsculas e sem espaços nas pontas, para não
+    haver duplicados disfarçados (' aa-00 ' vs 'AA-00'). Usada pelo clean() do
+    model (Admin) e pelo ViaturaSerializer (API).
+    """
+    return matricula.strip().upper()
+
+
 class Viatura(RegistoComAuditoria):
     """Uma viatura da empresa, identificada pela matrícula."""
 
@@ -61,10 +70,8 @@ class Viatura(RegistoComAuditoria):
         return f"{self.matricula} ({self.marca} {self.modelo})"
 
     def clean(self):
-        # Normaliza a matrícula: maiúsculas e sem espaços nas pontas, para não
-        # haver duplicados disfarçados (' aa-00 ' vs 'AA-00').
         if self.matricula:
-            self.matricula = self.matricula.strip().upper()
+            self.matricula = normalizar_matricula(self.matricula)
         # Limite superior do ano depende do ano atual, por isso fica aqui (o
         # MinValueValidator trata do limite inferior).
         if self.ano is not None and self.ano > _ano_maximo():
@@ -144,6 +151,17 @@ class Inspecao(RegistoComValidade, RegistoComAuditoria):
 
     def __str__(self):
         return f"Inspeção {self.viatura.matricula} — {self.data_inspecao}"
+
+    def clean(self):
+        # A próxima inspeção tem de ser depois da inspeção feita.
+        if (
+            self.data_inspecao
+            and self.data_validade
+            and self.data_validade <= self.data_inspecao
+        ):
+            raise ValidationError(
+                {"data_validade": "A validade tem de ser posterior à data da inspeção."}
+            )
 
 
 class DespesaViatura(RegistoComAuditoria):
