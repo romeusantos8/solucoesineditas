@@ -51,9 +51,11 @@ class APIAuthTests(APITestCase):
 
     def test_credenciais_erradas_dao_401(self):
         User.objects.create_user(username="u", password="segredo123")
-        resp = self.client.post(
-            "/api/auth/token/", {"username": "u", "password": "errada"}
-        )
+        # O django-axes regista cada falha nos logs (ver config/tests.py).
+        with self.assertLogs("axes", "WARNING"):
+            resp = self.client.post(
+                "/api/auth/token/", {"username": "u", "password": "errada"}
+            )
         self.assertEqual(resp.status_code, 401)
 
 

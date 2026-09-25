@@ -33,6 +33,23 @@ def validar_nif(nif: str) -> None:
         raise DjangoValidationError("NIF inválido (dígito de controlo não confere).")
 
 
+def ip_do_cliente(request) -> str | None:
+    """
+    IP real de quem fez o pedido, usado pelo django-axes para bloquear
+    tentativas de login (AXES_CLIENT_IP_CALLABLE).
+
+    Em produção, a app está atrás do proxy do Railway: o REMOTE_ADDR é o IP do
+    proxy (igual para toda a gente). O proxy acrescenta o IP de quem lhe ligou
+    ao FIM do cabeçalho X-Forwarded-For; o que estiver à esquerda veio do
+    próprio cliente e pode ser forjado, por isso usa-se o último valor. Sem o
+    cabeçalho (ex.: runserver local), usa-se o REMOTE_ADDR.
+    """
+    encaminhado = request.META.get("HTTP_X_FORWARDED_FOR")
+    if encaminhado:
+        return encaminhado.split(",")[-1].strip()
+    return request.META.get("REMOTE_ADDR")
+
+
 class RegistoComValidade(models.Model):
     """
     Base para qualquer registo que expira numa data (seguros, inspeções,

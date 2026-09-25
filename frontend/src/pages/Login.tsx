@@ -1,6 +1,7 @@
 // Página de login. Em sucesso, guarda o token e vai para o dashboard.
 
 import { useState, type FormEvent } from "react";
+import { AxiosError } from "axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
 import logo from "../assets/logo-si.png";
@@ -20,9 +21,15 @@ export default function Login() {
     try {
       await login(username, password);
       navigate("/");
-    } catch {
-      // O DRF responde 400 quando as credenciais estão erradas.
-      setErro("Credenciais inválidas. Tenta novamente.");
+    } catch (err) {
+      // 429 = bloqueado pelo django-axes após várias tentativas falhadas; a
+      // mensagem do backend diz quanto tempo esperar. Credenciais erradas → 401.
+      if (err instanceof AxiosError && err.response?.status === 429) {
+        const dados = err.response.data as { detail?: string } | undefined;
+        setErro(dados?.detail ?? "Demasiadas tentativas falhadas. Tenta mais tarde.");
+      } else {
+        setErro("Credenciais inválidas. Tenta novamente.");
+      }
     } finally {
       setAGuardar(false);
     }

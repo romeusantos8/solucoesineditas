@@ -11,6 +11,7 @@ Documentação: https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 
 from decouple import Csv, config
+from django.utils.csp import CSP
 
 # BASE_DIR é a raiz do projeto (a pasta que contém o manage.py).
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -75,6 +76,8 @@ THIRD_PARTY_APPS = [
     "django_filters",               # filtros de querystring (ex.: ?viatura=ID)
     "corsheaders",                  # permite o frontend React (outro porto) chamar a API
     "drf_spectacular",              # gera o esquema OpenAPI / Swagger UI da API
+    "drf_spectacular_sidecar",      # ficheiros do Swagger servidos pela app (sem CDN)
+    "axes",                         # bloqueia logins após várias tentativas falhadas
 ]
 
 # As nossas apps de domínio. Cada uma tem uma responsabilidade clara:
@@ -98,6 +101,8 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Content Security Policy (ver a secção CSP mais abaixo).
+    "django.middleware.csp.ContentSecurityPolicyMiddleware",
     # WhiteNoise serve os ficheiros estáticos (CSS/JS do Admin) em produção, sem
     # precisar de um servidor web à frente. Vem logo a seguir ao SecurityMiddleware.
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -110,6 +115,17 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # django-axes: transforma um login bloqueado numa resposta 429 legível.
+    # Tem de ser o último.
+    "axes.middleware.AxesMiddleware",
+]
+
+# O backend do axes vem primeiro: verifica se o utilizador/IP está bloqueado
+# antes de o Django sequer testar a password. Vale para todos os sítios de
+# login (app via JWT, Admin e API navegável), porque todos usam authenticate().
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -245,6 +261,39 @@ if not DEBUG:
 
 
 # ---------------------------------------------------------------------------
+# Content Security Policy (CSP)
+# ---------------------------------------------------------------------------
+# Diz ao browser de onde pode carregar scripts, estilos, imagens, etc. É a
+# principal defesa contra XSS: mesmo que alguém conseguisse injetar um <script>
+# numa página, o browser recusava-se a corrê-lo, e os tokens de login (que
+# vivem no localStorage) ficavam protegidos.
+#
+# Fase atual: SÓ AVISAR (Report-Only). O browser não bloqueia nada: envia um
+# relatório de cada violação para /api/csp-report/, que o escreve nos logs
+# ("Violação CSP: ..."). Quando os logs do Railway estiverem uns dias sem
+# violações, trocar SECURE_CSP_REPORT_ONLY por SECURE_CSP (passa a bloquear).
+
+POLITICA_CSP = {
+    "default-src": [CSP.SELF],
+    # Scripts: só ficheiros da própria app. Nada embutido, nada de fora.
+    "script-src": [CSP.SELF],
+    # Estilos embutidos permitidos: o Swagger e uma página do Admin trazem
+    # blocos <style>. O risco de estilos injetados é muito menor que o de
+    # scripts, e assim não há exceções por página a manter.
+    "style-src": [CSP.SELF, CSP.UNSAFE_INLINE],
+    # data: = imagens pequenas embutidas no CSS (ícones do Swagger e do Vite).
+    "img-src": [CSP.SELF, "data:"],
+    "connect-src": [CSP.SELF],
+    "object-src": [CSP.NONE],
+    "base-uri": [CSP.SELF],
+    "form-action": [CSP.SELF],
+    "frame-ancestors": [CSP.NONE],
+    "report-uri": "/api/csp-report/",
+}
+SECURE_CSP_REPORT_ONLY = POLITICA_CSP
+
+
+# ---------------------------------------------------------------------------
 # Logs
 # ---------------------------------------------------------------------------
 # Por defeito, o Django só escreve os erros na consola com DEBUG=True. Em
@@ -323,6 +372,10 @@ SPECTACULAR_SETTINGS = {
     # qualquer pessoa, ou bot, o mapa completo da API). Para os abrir no browser,
     # entra primeiro no Admin: a sessão do Admin serve de login.
     "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
+    # Ficheiros do Swagger servidos pela própria app (drf-spectacular-sidecar)
+    # em vez de um CDN externo: é o que a CSP permite (só 'self').
+    "SWAGGER_UI_DIST": "SIDECAR",
+    "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
     # Faz o botão "Authorize" do Swagger UI lembrar-se do token entre pedidos.
     "SWAGGER_UI_SETTINGS": {
         "persistAuthorization": True,
@@ -345,3 +398,33 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
+
+
+# ---------------------------------------------------------------------------
+# django-axes — limite de tentativas de login
+# ---------------------------------------------------------------------------
+# Sem isto, qualquer pessoa na internet podia tentar adivinhar passwords sem
+# limite. As tentativas ficam na BD (tabelas do axes), por isso o contador é
+# partilhado por todos os processos do gunicorn. Para desbloquear alguém antes
+# do tempo: Admin → Axes → "Access attempts" → apagar a linha dessa pessoa.
+
+# 5 falhas seguidas → bloqueado durante 15 minutos.
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = timedelta(minutes=15)
+# O axes não traz tradução para português. Mensagem usada no Admin, na API
+# navegável e no login da app (ver LoginView em config/urls.py).
+AXES_COOLOFF_MESSAGE = (
+    "Demasiadas tentativas de login falhadas. Tenta novamente daqui a "
+    f"{int(AXES_COOLOFF_TIME.total_seconds() // 60)} minutos."
+)
+# Bloqueia a combinação utilizador + IP. Só por IP trancava o escritório
+# inteiro (sai para a internet pelo mesmo IP); só por utilizador deixava
+# qualquer pessoa bloquear a conta de outra.
+AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
+# Um login certo limpa as falhas anteriores (umas gralhas não se acumulam).
+AXES_RESET_ON_SUCCESS = True
+# Não guardar cada login bem-sucedido (IP + utilizador): são dados pessoais que
+# só cresciam; as tentativas falhadas continuam registadas.
+AXES_DISABLE_ACCESS_LOG = True
+# IP real atrás do proxy do Railway (ver ip_do_cliente em config/common.py).
+AXES_CLIENT_IP_CALLABLE = "config.common.ip_do_cliente"

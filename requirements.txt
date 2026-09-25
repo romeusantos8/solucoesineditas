@@ -12,8 +12,10 @@ django-filter==25.1           # Filtros de querystring para a API (ex.: ?viatura
 django-cors-headers==4.7.0    # Deixa o frontend React (outro porto) chamar a API.
 whitenoise==6.8.2             # Serve os ficheiros estáticos (Admin) em produção.
 drf-spectacular==0.28.0       # Documentação OpenAPI/Swagger auto-gerada da API.
+drf-spectacular-sidecar==2026.9.*  # Ficheiros do Swagger servidos pela app (sem CDN; exigido pela CSP).
 djangorestframework-simplejwt==5.5.1  # Autenticação JWT (access curto + refresh).
 cryptography==50.0.*          # Cifragem dos campos sensíveis das fichas médicas (RGPD).
+django-axes==8.3.*            # Bloqueia logins após várias tentativas falhadas.
 
 # Driver de PostgreSQL. Usamos o psycopg 3 (não o antigo psycopg2) porque traz
 # binários pré-compilados ("wheels"), o que evita precisares de um compilador C
