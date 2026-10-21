@@ -89,5 +89,6 @@ React + TS, CSS próprio (sem framework de UI) — design system em `src/index.c
 - **Fundação reutilizável** (evita repetir CRUD por página): `src/api/useCrud.ts` (hook list/criar/editar(PATCH)/apagar paginado + `primeiraMensagemErro`), `src/api/useOpcoes.ts` (carrega lista p/ `<select>`), e componentes declarativos `components/{DataTable,CrudForm,CrudPage,ModalForm,BotaoEditar,Modal}.tsx`. As páginas de listagem reduzem-se a declarar campos+colunas.
 - Rotas protegidas por `components/ProtectedRoute.tsx`; `App.tsx` tem o mapa de rotas (`/<entidade>` e `/<entidade>/:id` para detalhes); páginas em `src/pages/`.
 - `src/api/types.ts` espelha os serializers do backend — manter a par quando a API mudar.
+- **PWA** (instalável no telemóvel): `public/manifest.webmanifest` + ícones em `public/` (gerados do `logo-si.png`), ligados no `index.html`. Sem service worker de propósito (nada em cache no telemóvel; deploys chegam logo). Instalar exige HTTPS (ou `localhost`).
 
 > Padrão de campo opcional no `CrudForm`: vazio vai como `""` para texto/email (no backend `CharField(blank=True)` sem `null=True`), mas como `null` para número/data/select e para campos `vazioComoNull` (texto unique+nullable, ex.: NIF, nº de série).
