@@ -1,8 +1,10 @@
-// Página de login. Em sucesso, guarda o token e vai para o dashboard.
+// Página de login, comum à gestão e aos funcionários. Em sucesso, guarda o
+// token e vai para a página inicial do perfil (dashboard ou portal de despesas).
 
 import { useState, type FormEvent } from "react";
 import { AxiosError } from "axios";
 import { useNavigate } from "react-router-dom";
+import { rotaInicial } from "../auth/authStore";
 import { useAuth } from "../auth/useAuth";
 import logo from "../assets/logo-si.png";
 
@@ -19,8 +21,12 @@ export default function Login() {
     setErro(null);
     setAGuardar(true);
     try {
-      await login(username, password);
-      navigate("/");
+      const eu = await login(username, password);
+      if (eu.perfil === "sem_acesso") {
+        setErro("Esta conta está desativada. Fala com o escritório.");
+        return;
+      }
+      navigate(rotaInicial(eu.perfil));
     } catch (err) {
       // 429 = bloqueado pelo django-axes após várias tentativas falhadas; a
       // mensagem do backend diz quanto tempo esperar. Credenciais erradas → 401.

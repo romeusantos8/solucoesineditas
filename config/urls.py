@@ -125,6 +125,9 @@ urlpatterns = [
     path("api/", include("fleet.urls")),
     path("api/", include("equipment.urls")),
     path("api/", include("employees.urls")),
+
+    # Quem sou eu (perfil: gestão ou portal do funcionário).
+    path("api/", include("accounts.urls")),
     path("api/", include("projects.urls")),
     path("api/", include("health_records.urls")),
 

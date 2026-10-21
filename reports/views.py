@@ -17,10 +17,10 @@ from decimal import Decimal
 
 from django.db.models import Sum
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from accounts.permissions import AcessoGestao
 from employees.models import DespesaFuncionario, Funcionario
 from equipment.models import Equipamento
 from fleet.models import DespesaViatura
@@ -52,7 +52,7 @@ def _inteiro(request, nome, default=None):
 class DespesasMensaisView(APIView):
     """Total de despesas por mês de um funcionário ou viatura, num ano."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AcessoGestao]
 
     def get(self, request):
         tipo = request.query_params.get("tipo")
@@ -125,7 +125,7 @@ class FaturacaoObraView(APIView):
     de autos (mais recentes primeiro).
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AcessoGestao]
 
     def get(self, request):
         obra_id = _inteiro(request, "obra")
@@ -174,7 +174,7 @@ class EquipamentosFuncionarioView(APIView):
     Devolve a lista de equipamentos de que esse funcionário é responsável.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AcessoGestao]
 
     def get(self, request):
         funcionario_id = _inteiro(request, "funcionario")

@@ -793,6 +793,53 @@ Não são urgentes, mas ficam registados para não se perderem.
 
 ---
 
+## Funcionalidades novas (ideias)
+
+Ideias de 15/10/2026. Não são correções: são funcionalidades novas, por ordem de
+prioridade. Nenhuma está começada.
+
+### F1 — "E se este funcionário sair?" (prioritária)
+
+Antes de desativar um funcionário (saída ou baixa), mostrar o que fica afetado:
+as obras onde está alocado, as viaturas e os equipamentos de que é responsável e
+os alertas que ficam sem ninguém que os trate. Hoje desativar um funcionário é um
+clique às cegas. As relações já existem todas; é só juntá-las numa vista.
+
+### F2 — Ler documentos a partir de uma fotografia (prioritária)
+
+Tira-se uma fotografia à apólice, ao certificado ou ao papel da inspeção, e a API
+do Claude extrai as datas, a seguradora e o nº da apólice e preenche o formulário.
+- Obriga a guardar ficheiros, o que a app ainda não faz (nenhum `FileField`).
+- Fichas médicas nunca (RGPD).
+- Cada leitura tem um custo na API.
+
+### F3 — A obra está a dar lucro? (prioritária, depois de F1 e F2)
+
+A receita já existe (`AutoObra`), e os custos em parte (despesas e alocações com
+datas). Com um custo por dia em cada funcionário, calcular a margem de cada obra
+mês a mês, e mostrar uma obra em prejuízo como alerta.
+- Falta o campo do custo do funcionário. **Precisa de migração**: seguir as
+  regras do topo.
+- Decidir quem pode ver os custos dos funcionários.
+
+### Menos importantes
+
+- **QR codes** nos equipamentos e viaturas: lido no telemóvel, abre uma página com
+  o certificado, o responsável e a obra. Com um passo a mais, troca o responsável.
+  Falta uma página para imprimir as etiquetas e uma vista para o telemóvel.
+- **Pasta para uma inspeção da ACT**, por obra: PDF com a aptidão de quem lá
+  trabalha (sem dados clínicos), os certificados dos equipamentos e os seguros das
+  viaturas. O que faltar aparece a vermelho.
+- **Bloqueios entre módulos:** não alocar a uma obra um funcionário com a ficha
+  expirada ou "não apto"; dar mais prioridade ao alerta de um equipamento com o
+  certificado expirado numa obra ativa.
+- **Prazos no calendário do telemóvel:** link de subscrição `.ics` para Google
+  Calendar ou Outlook. Sem as fichas médicas (ver D5).
+- **Detetive de despesas:** despesas repetidas (mesma viatura, mesmo valor, mesmo
+  dia), valores muito acima do normal e seguros que sobem face ao ano anterior.
+
+---
+
 ## Verificação de segurança — o que já está bem
 
 Verificado a 25/09/2026, com a app em modo produção (`DEBUG=False`) numa BD de

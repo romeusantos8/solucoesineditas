@@ -21,6 +21,9 @@ class FuncionarioAdmin(AuditoriaAdminMixin, admin.ModelAdmin):
     list_display = ("nome", "funcao", "nif", "ativo", "data_admissao")
     list_filter = ("ativo", "funcao")
     search_fields = ("nome", "nif", "email")
+    # A conta do portal gere-se na app (Funcionário → Acesso à app): desligá-la
+    # aqui deixaria um User solto com acesso de gestão.
+    readonly_fields = (*AuditoriaAdminMixin.readonly_fields, "utilizador")
     inlines = [DespesaFuncionarioInline]
 
 
