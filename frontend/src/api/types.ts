@@ -15,6 +15,17 @@ export interface Auditoria {
   atualizado_por: number | null;
 }
 
+// --- Autenticação ---
+// GET /eu/: que ecrã mostrar. "gestao" = app principal; "funcionario" = portal
+// de despesas; "sem_acesso" = conta de um funcionário desativado.
+export type Perfil = "gestao" | "funcionario" | "sem_acesso";
+
+export interface Eu {
+  username: string;
+  perfil: Perfil;
+  funcionario: { id: number; nome: string } | null;
+}
+
 // --- Frota ---
 export interface Viatura extends Auditoria {
   id: number;
@@ -88,6 +99,8 @@ export interface Funcionario extends Auditoria {
   ativo: boolean;
   email: string;
   telefone: string;
+  // Conta do portal de despesas (null = sem conta). Gere-se em /acesso/.
+  acesso: { username: string; ativo: boolean } | null;
   criado_em: string;
   atualizado_em: string;
 }
@@ -98,6 +111,15 @@ export interface DespesaFuncionario extends Auditoria {
   descricao: string;
   valor: string;
   data: string;
+}
+
+// Despesa vista pelo próprio funcionário no portal (/minhas-despesas/).
+export interface MinhaDespesa {
+  id: number;
+  descricao: string;
+  valor: string;
+  data: string;
+  criado_em: string;
 }
 
 // --- Clientes e Obras ---

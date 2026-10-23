@@ -5,6 +5,16 @@
     <link rel="icon" type="image/png" href="/src/assets/logo-si.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Gestão de Recursos — Soluções Inéditas" />
+    <!-- PWA: torna a app instalável no telemóvel (ícone no ecrã inicial, abre
+         em ecrã inteiro). O manifesto e os ícones estão em public/. Sem service
+         worker de propósito: nada fica em cache no telemóvel (dados pessoais),
+         e cada deploy chega logo a toda a gente. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#1f6b78" />
+    <!-- iPhone: o Safari usa estes em vez do manifesto. -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Soluções Inéditas" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <title>Gestão de Recursos — Soluções Inéditas</title>
   </head>
   <body>

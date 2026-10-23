@@ -1,0 +1,16 @@
+{
+  "name": "Gestão de Recursos — Soluções Inéditas",
+  "short_name": "Soluções Inéditas",
+  "description": "Gestão de recursos e registo de despesas da Soluções Inéditas.",
+  "lang": "pt-PT",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f8fa",
+  "theme_color": "#1f6b78",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

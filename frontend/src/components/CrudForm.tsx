@@ -13,7 +13,7 @@ import { primeiraMensagemErro } from "../api/useCrud";
 export interface Campo {
   nome: string;
   etiqueta: string;
-  tipo?: "text" | "number" | "date" | "email" | "month";
+  tipo?: "text" | "number" | "date" | "email" | "month" | "password";
   obrigatorio?: boolean;
   // Para campos de escolha (select). Se presente, rende um <select>.
   opcoes?: { valor: string | number; texto: string }[];
@@ -77,7 +77,8 @@ export default function CrudForm({
         dados[campo.nome] = null; // texto unique+nullable (ex.: NIF)
       } else {
         const ehTexto =
-          !campo.opcoes && (campo.tipo === undefined || campo.tipo === "text" || campo.tipo === "email");
+          !campo.opcoes &&
+          (campo.tipo === undefined || campo.tipo === "text" || campo.tipo === "email" || campo.tipo === "password");
         dados[campo.nome] = ehTexto ? "" : null;
       }
     }

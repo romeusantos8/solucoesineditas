@@ -12,6 +12,7 @@ campos e acesso restrito por perfil. Aqui ficam apenas dados administrativos.
 
 from decimal import Decimal
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -33,6 +34,19 @@ class Funcionario(RegistoComAuditoria):
     ativo = models.BooleanField("Ativo", default=True)
     email = models.EmailField("Email", blank=True)
     telefone = models.CharField("Telefone", max_length=20, blank=True)
+    # Conta com que o funcionário entra no portal de despesas (opcional). Um
+    # User ligado aqui passa a ter acesso SÓ ao portal (accounts/permissions.py).
+    # Gerida pela app (POST/DELETE /api/funcionarios/{id}/acesso/): revogar
+    # desativa o User mas mantém a ligação — um User solto voltaria a ser
+    # tratado como utilizador de gestão.
+    utilizador = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="funcionario",
+        verbose_name="Utilizador (portal)",
+    )
     # Timestamps e auditoria de utilizador vêm de RegistoComAuditoria.
 
     class Meta:

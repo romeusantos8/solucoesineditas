@@ -28,9 +28,9 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
+from accounts.permissions import AcessoGestao
 from equipment.models import Certificado
 from fleet.models import Inspecao, SeguroViatura
 from health_records.models import FichaMedica
@@ -105,7 +105,7 @@ def _alerta(registo, tipo, recurso, recurso_id):
 class AlertasView(APIView):
     """Dashboard de prazos. Só leitura; exige autenticação (default do projeto)."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AcessoGestao]
 
     def get(self, request):
         dias = _parse_inteiro_nao_negativo(request, "dias", DIAS_DEFAULT)

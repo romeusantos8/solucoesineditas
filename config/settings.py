@@ -334,7 +334,9 @@ REST_FRAMEWORK = {
     ],
     # Regra global: por defeito, é preciso estar autenticado para usar a API.
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticated",
+        # Autenticado e conta de gestão: as contas de funcionário só chegam ao
+        # portal de despesas (ver accounts/permissions.py).
+        "accounts.permissions.AcessoGestao",
     ],
     # Filtros de querystring por defeito (django-filter). Cada ViewSet declara
     # depois que campos aceita filtrar via `filterset_fields`.
