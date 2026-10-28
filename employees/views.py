@@ -8,6 +8,7 @@ from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from accounts.permissions import AcessoFuncionario, funcionario_do_utilizador
@@ -22,6 +23,12 @@ from .serializers import (
 )
 
 User = get_user_model()
+
+
+class PaginacaoDespesas(PageNumberPagination):
+    """Listas de despesas mais curtas que o PAGE_SIZE global (50)."""
+
+    page_size = 10
 
 
 class FuncionarioViewSet(AuditoriaViewSetMixin, viewsets.ModelViewSet):
@@ -63,8 +70,10 @@ class FuncionarioViewSet(AuditoriaViewSetMixin, viewsets.ModelViewSet):
 
 
 class DespesaFuncionarioViewSet(AuditoriaViewSetMixin, viewsets.ModelViewSet):
-    queryset = DespesaFuncionario.objects.select_related("funcionario").all()
+    # Desempate por id: com várias despesas no mesmo dia, a paginação fica estável.
+    queryset = DespesaFuncionario.objects.select_related("funcionario").order_by("-data", "-id")
     serializer_class = DespesaFuncionarioSerializer
+    pagination_class = PaginacaoDespesas
     filterset_fields = ["funcionario"]  # ?funcionario=ID
 
 
@@ -81,13 +90,14 @@ class MinhasDespesasViewSet(
     """
 
     serializer_class = MinhaDespesaSerializer
+    pagination_class = PaginacaoDespesas
     permission_classes = [AcessoFuncionario]
     # O queryset de classe só serve ao router/esquema; o real é filtrado.
     queryset = DespesaFuncionario.objects.none()
 
     def get_queryset(self):
         funcionario = funcionario_do_utilizador(self.request.user)
-        return DespesaFuncionario.objects.filter(funcionario=funcionario)
+        return DespesaFuncionario.objects.filter(funcionario=funcionario).order_by("-data", "-id")
 
     def perform_create(self, serializer):
         serializer.save(
