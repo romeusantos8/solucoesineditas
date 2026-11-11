@@ -29,6 +29,7 @@ class FuncionarioAdmin(AuditoriaAdminMixin, admin.ModelAdmin):
 
 @admin.register(DespesaFuncionario)
 class DespesaFuncionarioAdmin(AuditoriaAdminMixin, admin.ModelAdmin):
-    list_display = ("funcionario", "descricao", "valor", "data")
+    list_display = ("funcionario", "descricao", "valor", "data", "paga")
+    list_filter = ("paga",)
     search_fields = ("funcionario__nome", "descricao")
     date_hierarchy = "data"

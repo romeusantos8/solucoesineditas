@@ -35,11 +35,22 @@ export default function FuncionarioDetalhe() {
     { nome: "descricao", etiqueta: "Descrição", obrigatorio: true },
     { nome: "valor", etiqueta: "Valor (€)", tipo: "number", obrigatorio: true },
     { nome: "data", etiqueta: "Data", tipo: "date", obrigatorio: true },
+    {
+      nome: "paga",
+      etiqueta: "Paga",
+      opcoes: [
+        { valor: "false", texto: "Não" },
+        { valor: "true", texto: "Sim" },
+      ],
+      obrigatorio: true,
+      padrao: "false",
+    },
   ];
   const colunas: Coluna<DespesaFuncionario>[] = [
     { cabecalho: "Descrição", render: (d) => d.descricao },
     { cabecalho: "Valor (€)", render: (d) => d.valor },
     { cabecalho: "Data", render: (d) => d.data },
+    { cabecalho: "Paga", render: (d) => (d.paga ? "Sim" : "Não") },
   ];
 
   const criar = (dados: Record<string, unknown>) =>

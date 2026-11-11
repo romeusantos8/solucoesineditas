@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Pagamento de despesa</title>
+  <style>
+    body { font-family: Arial, sans-serif; color: #1f2937; background: #f3f4f6; margin: 0; padding: 16px; }
+    main { max-width: 420px; margin: 40px auto; background: #ffffff; border-radius: 8px; padding: 24px; }
+    h1 { font-size: 20px; margin-top: 0; }
+    dt { color: #6b7280; font-size: 14px; }
+    dd { margin: 0 0 12px; }
+    button { width: 100%; padding: 12px; border: 0; border-radius: 6px; background: #1d4ed8; color: #ffffff; font-size: 16px; cursor: pointer; }
+    .ok { color: #15803d; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <main>
+    {% if despesa %}
+      <h1>Despesa de {{ despesa.funcionario.nome }}</h1>
+      <dl>
+        <dt>Descrição</dt><dd>{{ despesa.descricao }}</dd>
+        <dt>Valor</dt><dd>{{ despesa.valor }} €</dd>
+        <dt>Data</dt><dd>{{ despesa.data|date:"d/m/Y" }}</dd>
+      </dl>
+      {% if despesa.paga %}
+        <p class="ok">Esta despesa está marcada como paga.</p>
+      {% else %}
+        <form method="post">
+          <button type="submit">Confirmar pagamento</button>
+        </form>
+      {% endif %}
+    {% else %}
+      <h1>Link inválido</h1>
+      <p>Este link não é válido, expirou, ou a despesa já foi apagada.</p>
+    {% endif %}
+  </main>
+</body>
+</html>

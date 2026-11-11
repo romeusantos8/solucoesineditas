@@ -111,6 +111,7 @@ export interface DespesaFuncionario extends Auditoria {
   descricao: string;
   valor: string;
   data: string;
+  paga: boolean;
 }
 
 // Despesa vista pelo próprio funcionário no portal (/minhas-despesas/).
@@ -119,6 +120,7 @@ export interface MinhaDespesa {
   descricao: string;
   valor: string;
   data: string;
+  paga: boolean;
   criado_em: string;
 }
 

@@ -81,8 +81,10 @@ def relatorio_csp(request):
         return HttpResponse(status=400)
     if not isinstance(relatorio, dict):
         return HttpResponse(status=400)
+    # %r (e não %s): o texto vem do browser/pedido e pode trazer quebras de linha,
+    # que forjariam linhas falsas nos logs. O %r escapa-as e já põe as aspas.
     logger_csp.warning(
-        "Violação CSP: '%s' bloqueado pela regra '%s' na página %s",
+        "Violação CSP: %r bloqueado pela regra %r na página %r",
         str(relatorio.get("blocked-uri", ""))[:200],
         str(relatorio.get("violated-directive", ""))[:100],
         str(relatorio.get("document-uri", ""))[:200],

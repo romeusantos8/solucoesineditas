@@ -24,6 +24,10 @@ from django.db import models
 # claro (ex.: criados antes da cifragem) e evitar tentar decifrá-los.
 _PREFIXO = "enc:"
 
+# Texto que a leitura devolve quando a chave não serve para decifrar o valor.
+# Está numa constante para a escrita poder reconhecê-lo e recusá-lo.
+MARCADOR_ILEGIVEL = "[dados cifrados ilegíveis]"
+
 
 def _fernet() -> Fernet:
     chave = config("FIELD_ENCRYPTION_KEY", default="")
@@ -51,6 +55,12 @@ class EncryptedTextField(models.TextField):
         # Python -> BD: cifra antes de gravar.
         if value is None or value == "":
             return value
+        # Se o valor é o marcador, a leitura falhou (chave errada). Gravá-lo
+        # cifrado destruiria o dado real, por isso a escrita é recusada.
+        if value == MARCADOR_ILEGIVEL:
+            raise ValueError(
+                "Chave de cifragem errada: gravação recusada para não destruir os dados."
+            )
         token = _fernet().encrypt(str(value).encode()).decode()
         return f"{_PREFIXO}{token}"
 
@@ -66,4 +76,4 @@ class EncryptedTextField(models.TextField):
             return _fernet().decrypt(token.encode()).decode()
         except InvalidToken:
             # Chave errada/dados corrompidos — não rebenta a app, mas sinaliza.
-            return "[dados cifrados ilegíveis]"
+            return MARCADOR_ILEGIVEL

@@ -322,6 +322,31 @@ LOGGING = {
 
 
 # ---------------------------------------------------------------------------
+# Email
+# ---------------------------------------------------------------------------
+# Sai pela API do Resend (ver config/email.py). Em desenvolvimento, sem chave, o
+# email é escrito na consola. Em produção, sem chave, o envio falha e fica nos logs.
+
+RESEND_API_KEY = config("RESEND_API_KEY", default="")
+EMAIL_BACKEND = (
+    "django.core.mail.backends.console.EmailBackend"
+    if DEBUG and not RESEND_API_KEY
+    else "config.email.ResendBackend"
+)
+# O domínio deste remetente tem de estar verificado no Resend.
+DEFAULT_FROM_EMAIL = config(
+    "DEFAULT_FROM_EMAIL", default="Soluções Inéditas <despesas@solucoesineditas.com>"
+)
+# Quem recebe o aviso das despesas registadas no portal do funcionário. Sem valor,
+# o envio é saltado em silêncio: em produção tem de estar definido no Railway.
+NOTIFICACAO_DESPESAS_EMAILS = config(
+    "NOTIFICACAO_DESPESAS_EMAILS",
+    default="",
+    cast=Csv(),
+)
+
+
+# ---------------------------------------------------------------------------
 # Django REST Framework
 # ---------------------------------------------------------------------------
 
@@ -348,6 +373,11 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 50,
     # drf-spectacular gera o esquema OpenAPI a partir dos serializers/views.
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    # Limites de pedidos por "scope". Não há DEFAULT_THROTTLE_CLASSES: o limite
+    # não é global, só vale nas views que o pedem (ver MinhasDespesasViewSet).
+    # Cada despesa do portal envia um email; sem limite, um ciclo de pedidos
+    # esgotava a quota do Resend e enchia a caixa de quem recebe os avisos.
+    "DEFAULT_THROTTLE_RATES": {"despesas_portal": "30/hour"},
     # ----------------------------------------------------------------------
     # GANCHO PARA O FUTURO (roles/permissões) — NÃO ativar agora.
     # Quando quiseres permissões por papel, o caminho típico é:
@@ -393,12 +423,18 @@ SPECTACULAR_SETTINGS = {
 # Access curto (5 min): se for roubado, expira depressa. Refresh mais longo
 # (1 dia) renova o access sem novo login. ROTATE + BLACKLIST não são usados aqui
 # (exigiriam a app de blacklist e BD); o refresh curto já dá boa margem.
+# CHECK_REVOKE_TOKEN: cada token leva a marca da password atual. Ao trocar a
+# password (ou ao desativar a conta), os tokens antigos deixam de valer, mesmo
+# dentro do prazo. Os tokens emitidos antes desta opção não têm a marca e são
+# recusados: quem estiver com sessão aberta tem de fazer login outra vez, uma vez.
 
 from datetime import timedelta  # noqa: E402  (perto do uso, de propósito)
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    # Ver o comentário acima: troca de password expulsa as sessões abertas.
+    "CHECK_REVOKE_TOKEN": True,
 }
 
 

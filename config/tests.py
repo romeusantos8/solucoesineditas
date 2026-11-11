@@ -9,15 +9,50 @@ Correm numa base de dados de teste isolada. Para correr só estes:
 import io
 import json
 import logging
+import urllib.error
 from unittest import mock
 
 from django.contrib.auth import get_user_model
-from django.test import Client
+from django.core.mail import EmailMultiAlternatives
+from django.test import Client, SimpleTestCase, override_settings
 from rest_framework.test import APITestCase
 
+from config.email import ResendBackend
 from fleet.views import ViaturaViewSet
 
 User = get_user_model()
+
+
+@override_settings(RESEND_API_KEY="chave-teste")
+class ResendBackendTests(SimpleTestCase):
+    """O backend chama a API do Resend com o formato certo (sem rede real)."""
+
+    def mensagem(self):
+        mensagem = EmailMultiAlternatives(
+            "Assunto", "Texto", "de@example.com", ["para@example.com"]
+        )
+        mensagem.attach_alternative("<p>Texto</p>", "text/html")
+        return mensagem
+
+    @mock.patch("config.email.urllib.request.urlopen")
+    def test_envia_o_pedido_para_a_api(self, urlopen):
+        self.assertEqual(ResendBackend().send_messages([self.mensagem()]), 1)
+        pedido = urlopen.call_args.args[0]
+        self.assertEqual(pedido.full_url, "https://api.resend.com/emails")
+        self.assertEqual(pedido.get_header("Authorization"), "Bearer chave-teste")
+        self.assertTrue(pedido.get_header("User-agent"))
+        self.assertEqual(json.loads(pedido.data), {
+            "from": "de@example.com", "to": ["para@example.com"],
+            "subject": "Assunto", "text": "Texto", "html": "<p>Texto</p>",
+        })
+
+    @mock.patch("config.email.urllib.request.urlopen")
+    def test_erro_da_api_inclui_o_motivo(self, urlopen):
+        urlopen.side_effect = urllib.error.HTTPError(
+            "url", 403, "Forbidden", {}, io.BytesIO(b"dominio por verificar")
+        )
+        with self.assertRaisesMessage(RuntimeError, "dominio por verificar"):
+            ResendBackend().send_messages([self.mensagem()])
 
 
 class DocumentacaoApiTests(APITestCase):
@@ -193,6 +228,25 @@ class CspTests(APITestCase):
             )
         self.assertEqual(resp.status_code, 204)
         self.assertIn("https://mau.example/x.js", logs.output[0])
+
+    def test_quebra_de_linha_no_relatorio_nao_forja_linhas_de_log(self):
+        # Um atacante podia pôr "\n" no URL para parecer outra entrada do log.
+        browser = Client(enforce_csrf_checks=True)
+        relatorio = {
+            "csp-report": {
+                "blocked-uri": "x.js\nWARNING:config.csp:Violação CSP: falsa",
+                "violated-directive": "script-src",
+                "document-uri": "https://app.example/",
+            }
+        }
+        with self.assertLogs("config.csp", "WARNING") as logs:
+            browser.post(
+                "/api/csp-report/",
+                data=json.dumps(relatorio),
+                content_type="application/csp-report",
+            )
+        self.assertEqual(len(logs.output), 1)
+        self.assertNotIn("\n", logs.output[0])
 
     def test_relatorio_invalido_e_recusado(self):
         browser = Client(enforce_csrf_checks=True)

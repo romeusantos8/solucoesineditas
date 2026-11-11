@@ -4,17 +4,25 @@ da conta do portal e o próprio portal de despesas do funcionário.
 """
 
 from django.contrib.auth import get_user_model
+from django.core import signing
 from django.db import transaction
+from django.shortcuts import render
+from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 
 from accounts.permissions import AcessoFuncionario, funcionario_do_utilizador
 from config.common import AuditoriaViewSetMixin
 
 from .models import DespesaFuncionario, Funcionario
+from .notificacoes import despesa_do_token, notificar_nova_despesa
 from .serializers import (
     AcessoFuncionarioSerializer,
     DespesaFuncionarioSerializer,
@@ -47,6 +55,10 @@ class FuncionarioViewSet(AuditoriaViewSetMixin, viewsets.ModelViewSet):
         seria tratado como utilizador de gestão).
         """
         funcionario = self.get_object()
+        # Uma conta de staff ligada a um funcionário é de gestão: não se mexe
+        # por aqui (senão um gestor comum tomava-lhe a conta).
+        if funcionario.utilizador is not None and funcionario.utilizador.is_staff:
+            raise PermissionDenied("Esta conta é de gestão e não se gere pelo portal.")
 
         if request.method == "DELETE":
             if funcionario.utilizador is not None:
@@ -74,7 +86,7 @@ class DespesaFuncionarioViewSet(AuditoriaViewSetMixin, viewsets.ModelViewSet):
     queryset = DespesaFuncionario.objects.select_related("funcionario").order_by("-data", "-id")
     serializer_class = DespesaFuncionarioSerializer
     pagination_class = PaginacaoDespesas
-    filterset_fields = ["funcionario"]  # ?funcionario=ID
+    filterset_fields = ["funcionario", "paga"]  # ?funcionario=ID&paga=false
 
 
 @extend_schema(tags=["Portal do funcionário"])
@@ -92,16 +104,50 @@ class MinhasDespesasViewSet(
     serializer_class = MinhaDespesaSerializer
     pagination_class = PaginacaoDespesas
     permission_classes = [AcessoFuncionario]
+    # Nome do limite em DEFAULT_THROTTLE_RATES (settings).
+    throttle_scope = "despesas_portal"
     # O queryset de classe só serve ao router/esquema; o real é filtrado.
     queryset = DespesaFuncionario.objects.none()
+
+    def get_throttles(self):
+        # Só registar é limitado (cada registo envia um email); listar não. O
+        # contador é por utilizador e, ao exceder, o DRF responde 429.
+        if self.action == "create":
+            return [ScopedRateThrottle()]
+        return []
 
     def get_queryset(self):
         funcionario = funcionario_do_utilizador(self.request.user)
         return DespesaFuncionario.objects.filter(funcionario=funcionario).order_by("-data", "-id")
 
     def perform_create(self, serializer):
-        serializer.save(
+        despesa = serializer.save(
             funcionario=funcionario_do_utilizador(self.request.user),
             criado_por=self.request.user,
             atualizado_por=self.request.user,
         )
+        notificar_nova_despesa(despesa, self.request)
+
+
+@csrf_exempt  # quem autoriza é o token assinado do link, não uma sessão
+@never_cache
+@require_http_methods(["GET", "POST"])
+def confirmar_pagamento(request, token):
+    """
+    Página aberta a partir do link do email. O GET só mostra a despesa: os filtros
+    de email abrem os links sozinhos, e um GET que alterasse dados marcaria
+    despesas como pagas sem ninguém clicar. Quem paga é o POST do botão.
+    """
+    try:
+        despesa = DespesaFuncionario.objects.select_related("funcionario").get(
+            pk=despesa_do_token(token)
+        )
+    except (signing.BadSignature, DespesaFuncionario.DoesNotExist):
+        return render(request, "employees/confirmar_pagamento.html", status=404)
+
+    if request.method == "POST" and not despesa.paga:
+        despesa.paga = True
+        # Sem sessão não se sabe quem clicou: não fica o nome do último a editar.
+        despesa.atualizado_por = None
+        despesa.save(update_fields=["paga", "atualizado_por", "atualizado_em"])
+    return render(request, "employees/confirmar_pagamento.html", {"despesa": despesa})

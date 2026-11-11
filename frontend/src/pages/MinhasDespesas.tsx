@@ -28,6 +28,7 @@ const colunas: Coluna<MinhaDespesa>[] = [
   { cabecalho: "Data", render: (d) => d.data },
   { cabecalho: "Descrição", render: (d) => d.descricao },
   { cabecalho: "Valor (€)", render: (d) => d.valor },
+  { cabecalho: "Paga", render: (d) => (d.paga ? "Sim" : "Não") },
 ];
 
 export default function MinhasDespesas() {

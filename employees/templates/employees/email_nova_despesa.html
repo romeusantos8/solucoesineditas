@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="pt-PT">
+<body style="font-family: Arial, sans-serif; color: #1f2937;">
+  <p><strong>{{ despesa.funcionario.nome }}</strong> registou uma despesa.</p>
+  <table cellpadding="4">
+    <tr><td>Descrição:</td><td>{{ despesa.descricao }}</td></tr>
+    <tr><td>Valor:</td><td>{{ despesa.valor }} €</td></tr>
+    <tr><td>Data:</td><td>{{ despesa.data|date:"d/m/Y" }}</td></tr>
+  </table>
+  <p style="margin-top: 20px;">
+    <a href="{{ link }}" style="background: #1d4ed8; color: #ffffff; padding: 10px 18px; border-radius: 6px; text-decoration: none;">Marcar como paga</a>
+  </p>
+</body>
+</html>

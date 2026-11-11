@@ -8,12 +8,15 @@ Correr: .\venv\Scripts\python.exe manage.py test health_records
 """
 
 from datetime import date, timedelta
+from unittest.mock import patch
 
+from cryptography.fernet import Fernet
 from django.contrib.auth import get_user_model
 from django.db import connection
 from django.test import TestCase
 from rest_framework.test import APITestCase
 
+from config.encryption import MARCADOR_ILEGIVEL
 from employees.models import Funcionario
 
 from .models import FichaMedica
@@ -142,3 +145,50 @@ class AlertasIncluiFichaTests(APITestCase):
         dados = self.client.get("/api/alerts/").json()["results"]
         tipos = {d["tipo"] for d in dados}
         self.assertIn("ficha_medica", tipos)
+
+
+class ChaveErradaTests(APITestCase):
+    """Com a chave errada a app não pode gravar por cima dos dados reais."""
+
+    def setUp(self):
+        self.func = Funcionario.objects.create(
+            nome="Ana", funcao="Operadora", data_admissao=date.today()
+        )
+        self.admin = User.objects.create_user(
+            username="admin", password="x123456789", is_staff=True
+        )
+        self.client.force_authenticate(self.admin)
+        # Gravada com a chave certa (a do .env).
+        self.ficha = FichaMedica.objects.create(
+            funcionario=self.func, aptidao="apto", data_exame=date.today(),
+            data_validade=date.today() + timedelta(days=365), medico="Dr. Silva",
+        )
+        self.chave_errada = Fernet(Fernet.generate_key())
+
+    def medico_cru(self):
+        with connection.cursor() as cur:
+            cur.execute(
+                "SELECT medico FROM health_records_fichamedica WHERE id=%s",
+                [self.ficha.id],
+            )
+            return cur.fetchone()[0]
+
+    def test_chave_errada_le_o_marcador(self):
+        with patch("config.encryption._fernet", return_value=self.chave_errada):
+            ficha = FichaMedica.objects.get(pk=self.ficha.pk)
+        self.assertEqual(ficha.medico, MARCADOR_ILEGIVEL)
+
+    def test_patch_com_chave_errada_da_400_e_nao_estraga_o_dado(self):
+        antes = self.medico_cru()
+        with patch("config.encryption._fernet", return_value=self.chave_errada):
+            resp = self.client.patch(
+                f"/api/fichas-medicas/{self.ficha.id}/",
+                {"aptidao": "nao_apto"}, format="json",
+            )
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(self.medico_cru(), antes)
+
+    def test_get_prep_value_recusa_o_marcador(self):
+        campo = FichaMedica._meta.get_field("medico")
+        with self.assertRaises(ValueError):
+            campo.get_prep_value(MARCADOR_ILEGIVEL)
