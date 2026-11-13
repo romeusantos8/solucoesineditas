@@ -17,7 +17,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 from config.common import RegistoComAuditoria, RegistoComValidade
-from config.encryption import EncryptedTextField
+from config.encryption import MARCADOR_ILEGIVEL, EncryptedTextField
 from employees.models import Funcionario
 
 
@@ -68,3 +68,11 @@ class FichaMedica(RegistoComValidade, RegistoComAuditoria):
             raise ValidationError(
                 {"data_validade": "A validade tem de ser posterior à data do exame."}
             )
+        # Com a chave errada, a leitura devolve o marcador: gravá-lo apagaria o
+        # texto real. Responde 400 (API) ou erro no campo (Admin), não um 500.
+        for campo in ("medico", "observacoes"):
+            if getattr(self, campo) == MARCADOR_ILEGIVEL:
+                raise ValidationError(
+                    {campo: "Não é possível gravar: o conteúdo não pode ser decifrado "
+                            "(chave de cifragem errada)."}
+                )

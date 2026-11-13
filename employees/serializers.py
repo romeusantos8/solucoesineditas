@@ -81,6 +81,7 @@ class DespesaFuncionarioSerializer(serializers.ModelSerializer):
             "descricao",
             "valor",
             "data",
+            "paga",
             *AUDITORIA_FIELDS,
         ]
         read_only_fields = [*AUDITORIA_FIELDS]
@@ -95,5 +96,6 @@ class MinhaDespesaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DespesaFuncionario
-        fields = ["id", "descricao", "valor", "data", "criado_em"]
-        read_only_fields = ["criado_em"]
+        fields = ["id", "descricao", "valor", "data", "paga", "criado_em"]
+        # `paga` só leitura: o funcionário vê o estado, mas não o pode alterar.
+        read_only_fields = ["paga", "criado_em"]

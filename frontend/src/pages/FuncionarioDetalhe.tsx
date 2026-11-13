@@ -10,6 +10,7 @@ import BotaoEditar from "../components/BotaoEditar";
 import BotaoVoltar from "../components/BotaoVoltar";
 import DataTable, { type Coluna } from "../components/DataTable";
 import ModalForm from "../components/ModalForm";
+import Paginacao from "../components/Paginacao";
 import AcessoAppSeccao from "../components/AcessoAppSeccao";
 import FichaMedicaSeccao from "../components/FichaMedicaSeccao";
 import type { DespesaFuncionario, Funcionario } from "../api/types";
@@ -34,11 +35,22 @@ export default function FuncionarioDetalhe() {
     { nome: "descricao", etiqueta: "Descrição", obrigatorio: true },
     { nome: "valor", etiqueta: "Valor (€)", tipo: "number", obrigatorio: true },
     { nome: "data", etiqueta: "Data", tipo: "date", obrigatorio: true },
+    {
+      nome: "paga",
+      etiqueta: "Paga",
+      opcoes: [
+        { valor: "false", texto: "Não" },
+        { valor: "true", texto: "Sim" },
+      ],
+      obrigatorio: true,
+      padrao: "false",
+    },
   ];
   const colunas: Coluna<DespesaFuncionario>[] = [
     { cabecalho: "Descrição", render: (d) => d.descricao },
     { cabecalho: "Valor (€)", render: (d) => d.valor },
     { cabecalho: "Data", render: (d) => d.data },
+    { cabecalho: "Paga", render: (d) => (d.paga ? "Sim" : "Não") },
   ];
 
   const criar = (dados: Record<string, unknown>) =>
@@ -60,6 +72,12 @@ export default function FuncionarioDetalhe() {
         acoes={(d) => <BotaoEditar item={d} titulo="Editar despesa" campos={campos} onEditar={despesas.editar} />}
         onApagar={(d) => despesas.apagar(d.id)}
         vazio="Sem despesas."
+      />
+      <Paginacao
+        pagina={despesas.pagina}
+        total={despesas.total}
+        temProxima={despesas.temProxima}
+        onMudar={despesas.setPagina}
       />
 
       <AcessoAppSeccao funcionario={func} onAlterado={setFunc} />

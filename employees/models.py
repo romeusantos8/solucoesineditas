@@ -84,6 +84,7 @@ class DespesaFuncionario(RegistoComAuditoria):
         validators=[MinValueValidator(Decimal("0.01"))],
     )
     data = models.DateField("Data")
+    paga = models.BooleanField("Paga", default=False)
 
     class Meta:
         verbose_name = "Despesa de funcionário"

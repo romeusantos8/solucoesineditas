@@ -3,6 +3,8 @@
 # (O .env.example, esse sim, é versionado: serve de modelo sem segredos reais.)
 # ----------------------------------------------------------------------------
 .env
+analise
+
 
 # Ambiente virtual de Python
 venv/

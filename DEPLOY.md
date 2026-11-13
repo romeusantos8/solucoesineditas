@@ -36,6 +36,9 @@ No serviço da **app** (não da BD), abre **Variables** e adiciona:
 | `DEBUG` | `False` |
 | `ALLOWED_HOSTS` | `127.0.0.1,localhost` |
 | `CSRF_TRUSTED_ORIGINS` | (deixa vazio — o domínio Railway é adicionado sozinho) |
+| `RESEND_API_KEY` | (chave da API do Resend, para os avisos de despesas — o plano Hobby bloqueia SMTP) |
+| `DEFAULT_FROM_EMAIL` | remetente, num domínio verificado no Resend (por defeito, `despesas@solucoesineditas.com`) |
+| `NOTIFICACAO_DESPESAS_EMAILS` | quem recebe os avisos de despesas. **Obrigatória**: sem ela não sai nenhum aviso, e não há erro. Sem valor por defeito no código. |
 
 > Não precisas de definir `RAILWAY_PUBLIC_DOMAIN` — o Railway injeta-a
 > automaticamente, e o `settings.py` junta esse domínio ao `ALLOWED_HOSTS` e ao

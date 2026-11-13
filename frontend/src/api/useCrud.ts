@@ -27,6 +27,10 @@ export function primeiraMensagemErro(err: unknown): string {
 interface UseCrud<T> {
   itens: T[];
   total: number;
+  // Paginação do DRF (50/página, ou o que a view definir): página atual e se há mais à frente.
+  pagina: number;
+  temProxima: boolean;
+  setPagina: (pagina: number) => void;
   aCarregar: boolean;
   erro: string | null;
   recarregar: () => void;
@@ -42,21 +46,28 @@ export function useCrud<T extends { id: number }>(
 ): UseCrud<T> {
   const [itens, setItens] = useState<T[]>([]);
   const [total, setTotal] = useState(0);
+  const [pagina, setPagina] = useState(1);
+  const [temProxima, setTemProxima] = useState(false);
   const [aCarregar, setACarregar] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+
+  // Mudar de recurso/filtro volta à primeira página.
+  useEffect(() => setPagina(1), [recurso, query]);
 
   const recarregar = useCallback(() => {
     setACarregar(true);
     setErro(null);
+    const sep = query ? "&" : "?";
     api
-      .get<Paginated<T>>(`${recurso}${query}`)
+      .get<Paginated<T>>(`${recurso}${query}${sep}page=${pagina}`)
       .then((res) => {
         setItens(res.data.results);
         setTotal(res.data.count);
+        setTemProxima(res.data.next !== null);
       })
       .catch(() => setErro("Não foi possível carregar os dados."))
       .finally(() => setACarregar(false));
-  }, [recurso, query]);
+  }, [recurso, query, pagina]);
 
   useEffect(recarregar, [recarregar]);
 
@@ -74,8 +85,12 @@ export function useCrud<T extends { id: number }>(
 
   async function apagar(id: number) {
     await api.delete(`${recurso}${id}/`);
-    recarregar();
+    // Apagou o último item da página: recua uma (senão o DRF dá 404).
+    if (itens.length === 1 && pagina > 1) setPagina(pagina - 1);
+    else recarregar();
   }
 
-  return { itens, total, aCarregar, erro, recarregar, criar, editar, apagar };
+  return {
+    itens, total, pagina, temProxima, setPagina, aCarregar, erro, recarregar, criar, editar, apagar,
+  };
 }

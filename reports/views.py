@@ -16,6 +16,8 @@ from datetime import date
 from decimal import Decimal
 
 from django.db.models import Sum
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -54,6 +56,20 @@ class DespesasMensaisView(APIView):
 
     permission_classes = [AcessoGestao]
 
+    @extend_schema(
+        tags=["Relatórios"],
+        parameters=[
+            OpenApiParameter("tipo", OpenApiTypes.STR, required=True,
+                             description="'funcionario' ou 'viatura'"),
+            OpenApiParameter("entidade", OpenApiTypes.INT, required=True,
+                             description="id do funcionário ou da viatura"),
+            OpenApiParameter("ano", OpenApiTypes.INT, required=False,
+                             description="YYYY, entre 2000 e 2100 (default: ano atual)"),
+            OpenApiParameter("mes", OpenApiTypes.INT, required=False,
+                             description="1-12; junta o detalhe desse mês"),
+        ],
+        responses=OpenApiTypes.OBJECT,
+    )
     def get(self, request):
         tipo = request.query_params.get("tipo")
         if tipo not in _FONTES:
@@ -127,6 +143,13 @@ class FaturacaoObraView(APIView):
 
     permission_classes = [AcessoGestao]
 
+    @extend_schema(
+        tags=["Relatórios"],
+        parameters=[
+            OpenApiParameter("obra", OpenApiTypes.INT, required=True, description="id da obra"),
+        ],
+        responses=OpenApiTypes.OBJECT,
+    )
     def get(self, request):
         obra_id = _inteiro(request, "obra")
         try:
@@ -176,6 +199,14 @@ class EquipamentosFuncionarioView(APIView):
 
     permission_classes = [AcessoGestao]
 
+    @extend_schema(
+        tags=["Relatórios"],
+        parameters=[
+            OpenApiParameter("funcionario", OpenApiTypes.INT, required=True,
+                             description="id do funcionário"),
+        ],
+        responses=OpenApiTypes.OBJECT,
+    )
     def get(self, request):
         funcionario_id = _inteiro(request, "funcionario")
         try:

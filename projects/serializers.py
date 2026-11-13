@@ -7,6 +7,7 @@ são DERIVADOS: são os equipamentos dos funcionários alocados (cada equipament
 tem um `responsavel`), apresentados como lista só-de-leitura.
 """
 
+from drf_spectacular.utils import extend_schema_field, inline_serializer
 from rest_framework import serializers
 
 from config.common import AUDITORIA_FIELDS, ModelCleanSerializerMixin
@@ -74,6 +75,20 @@ class ObraSerializer(ModelCleanSerializerMixin, serializers.ModelSerializer):
         ]
         read_only_fields = ["criado_em", "atualizado_em", *AUDITORIA_FIELDS]
 
+    # Só documentação (Swagger): diz ao drf-spectacular a forma de cada item.
+    @extend_schema_field(
+        inline_serializer(
+            name="EquipamentoDerivado",
+            fields={
+                "id": serializers.IntegerField(),
+                "nome": serializers.CharField(),
+                "numero_serie": serializers.CharField(allow_null=True),
+                "funcionario_id": serializers.IntegerField(),
+                "funcionario_nome": serializers.CharField(),
+            },
+            many=True,
+        )
+    )
     def get_equipamentos_derivados(self, obra):
         """
         Junta os equipamentos de todos os funcionários alocados à obra. Cada item

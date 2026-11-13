@@ -13,6 +13,7 @@ import { useAuth } from "../auth/useAuth";
 import CrudForm, { type Campo } from "../components/CrudForm";
 import DataTable, { type Coluna } from "../components/DataTable";
 import { IconeSair } from "../components/Icones";
+import Paginacao from "../components/Paginacao";
 import logo from "../assets/logo-si.png";
 
 // Data de hoje em hora local (toISOString() daria a data UTC).
@@ -27,6 +28,7 @@ const colunas: Coluna<MinhaDespesa>[] = [
   { cabecalho: "Data", render: (d) => d.data },
   { cabecalho: "Descrição", render: (d) => d.descricao },
   { cabecalho: "Valor (€)", render: (d) => d.valor },
+  { cabecalho: "Paga", render: (d) => (d.paga ? "Sim" : "Não") },
 ];
 
 export default function MinhasDespesas() {
@@ -88,8 +90,18 @@ export default function MinhasDespesas() {
         <section>
           <h2>As minhas despesas</h2>
           {despesas.erro && <div className="alert-erro">{despesas.erro}</div>}
-          {!despesas.aCarregar && (
-            <DataTable colunas={colunas} itens={despesas.itens} vazio="Ainda não registaste despesas." />
+          {/* Só esconde no primeiro carregamento: ao mudar de página a tabela
+              fica visível, senão a página encolhe e o scroll salta para o topo. */}
+          {(!despesas.aCarregar || despesas.itens.length > 0) && (
+            <>
+              <DataTable colunas={colunas} itens={despesas.itens} vazio="Ainda não registaste despesas." />
+              <Paginacao
+                pagina={despesas.pagina}
+                total={despesas.total}
+                temProxima={despesas.temProxima}
+                onMudar={despesas.setPagina}
+              />
+            </>
           )}
         </section>
       </main>

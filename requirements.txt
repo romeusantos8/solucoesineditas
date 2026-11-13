@@ -7,7 +7,7 @@
 
 Django>=6.0.8,<6.1            # Framework web. 6.0 suporta oficialmente Python 3.14.
 sqlparse>=0.6.0               # Dependência do Django; mínimo por segurança.
-djangorestframework>=3.17.2,<3.18  # DRF: transforma o Django numa API REST (3.17+ suporta Django 6.0).
+djangorestframework>=3.18.2,<3.19  # DRF: transforma o Django numa API REST (3.18.2 corrige CVE-2026-114136/7/8).
 django-filter==25.1           # Filtros de querystring para a API (ex.: ?viatura=ID).
 django-cors-headers==4.7.0    # Deixa o frontend React (outro porto) chamar a API.
 whitenoise==6.8.2             # Serve os ficheiros estáticos (Admin) em produção.
